@@ -1,40 +1,14 @@
-action set_egress(egress_spec, smac, dmac) {
-    modify_field(standard_metadata.egress_spec, egress_spec);
-    modify_field (ethernet.srcAddr, smac);
-    modify_field (ethernet.dstAddr, dmac);
-    add_to_field(ipv4.ttl, -1);
-}
+/*************************************************************************
+*********************** R O U T I N G  ***********************************
+*************************************************************************/
 
-table ipv4_route {
-    reads {
-        ipv4.dstAddr : lpm;
-    }
-    actions {
-        set_egress;
-        _drop;
-    }
-    size : 8192;
-}
-
-action ethernet_set_mac_act (smac, dmac) {
-    modify_field (ethernet.srcAddr, smac);
-    modify_field (ethernet.dstAddr, dmac);
-}
-
-table ethernet_set_mac {
-    reads {
-        standard_metadata.egress_port: exact;
-    }
-    actions {
-        ethernet_set_mac_act;
-        _no_op;
-    }
-}
-
-action _no_op() {
-    no_op();
+action set_egress(bit<9> egress_spec, bit<48> smac, bit<48> dmac) {
+    standard_metadata.egress_spec = egress_spec;
+    hdr.ethernet.srcAddr = smac;
+    hdr.ethernet.dstAddr = dmac;
+    hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
 }
 
 action _drop() {
-    drop();
+    mark_to_drop(standard_metadata);
 }

@@ -1,112 +1,50 @@
-parser start {
-    return parse_ethernet;
-}
+/*************************************************************************
+*********************** P A R S E R  ***********************************
+*************************************************************************/
 
-parser parse_ethernet {
-    extract (ethernet);
-    return select (latest.etherType) {
-        0x0800:     parse_ipv4;
-        default:    ingress;
+parser ParserImpl(packet_in packet,
+                  out headers hdr,
+                  inout metadata meta,
+                  inout standard_metadata_t standard_metadata) {
+
+    state start {
+        transition parse_ethernet;
+    }
+    state parse_ethernet {
+        packet.extract(hdr.ethernet);
+        transition select(hdr.ethernet.etherType) {
+            0x0800: parse_ipv4;
+            default: ingress; // FIXME: was accept, changed to ingress
+        }
+    }
+    state parse_ipv4 {
+        packet.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol) {
+            6: parse_tcp;
+            17: parse_udp;
+            default: ingress;
+        }
+    }
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition ingress;
+    }
+    state parse_udp {
+        packet.extract(hdr.udp);
+        transition select(hdr.udp.dstPort) {
+            PQ_PORT: parse_pq_hdr;
+            default: ingress;
+        }
+    }
+    state parse_pq_hdr {
+        packet.extract(hdr.pq_hdr);
+        transition select(hdr.pq_hdr.recirc_flag) {
+            RECIRCULATED: parse_recirculate_hdr;
+            default: ingress;
+        }
+    }
+    state parse_recirculate_hdr {
+        packet.extract(hdr.recirculate_hdr);
+        transition ingress;
     }
 }
-
-parser parse_ipv4 {
-    extract (ipv4);
-    return select (latest.protocol) {
-        6:          parse_tcp;
-        17:         parse_udp;
-        default:    ingress;
-    }
-}
-
-field_list ipv4_field_list {
-    ipv4.version;
-    ipv4.ihl;
-    ipv4.diffserv;
-    ipv4.totalLen;
-    ipv4.identification;
-    ipv4.flags;
-    ipv4.fragOffset;
-    ipv4.ttl;
-    ipv4.protocol;
-    ipv4.srcAddr;
-    ipv4.dstAddr;
-}
-
-field_list_calculation ipv4_chksum_calc {
-    input {
-        ipv4_field_list;
-    }
-    algorithm: csum16;
-    output_width: 16;
-}
-
-calculated_field ipv4.hdrChecksum {
-    update ipv4_chksum_calc;
-}
-
-parser parse_tcp {
-    extract (tcp);
-    return ingress;
-}
-
-parser parse_udp {
-    extract (udp);
-    return select (latest.dstPort) {
-        PQ_PORT: parse_pq_hdr;
-        default: ingress;
-    }
-}
-
-/*
-field_list udp_field_list {
-    udp.srcPort;
-    udp.dstPort;
-    udp.pkt_length;
-    udp.checksum;
-}
-field_list_calculation udp_chksum_calc {
-    input {
-        udp_field_list;
-    }
-    algorithm: csum16;
-    output_width: 16;
-}
-calculated_field udp.checksum {
-    update udp_chksum_calc;
-}
-*/
-
-parser parse_pq_hdr {
-    extract (pq_hdr);
-    return select (latest.recirc_flag) {
-        RECIRCULATED: parse_recirculate_hdr;
-        default: ingress;
-    }
-}
-
-parser parse_recirculate_hdr {
-    extract (recirculate_hdr);
-    return ingress;
-}
-
-/*
-parser parse_nlk_hdr {
-    extract (nlk_hdr);
-    return select (latest.recirc_flag) {
-        RECIRCULATED_1: parse_recirculate_hdr;
-        RECIRCULATED_2: parse_recirculate_hdr;
-        default: ingress;
-    }
-}
-
-parser parse_recirculate_hdr {
-    extract (recirculate_hdr);
-    return ingress;
-}
-
-parser parse_adm_hdr {
-    extract (adm_hdr);
-    return ingress;
-}
-*/

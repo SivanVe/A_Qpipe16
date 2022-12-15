@@ -1,79 +1,119 @@
-header_type ethernet_t {
-    fields {
-        dstAddr:    48;
-        srcAddr:    48;
-        etherType:  16;
-    }
-}
-header ethernet_t ethernet;
+/*************************************************************************
+*********************** H E A D E R S  ***********************************
+*************************************************************************/
 
-header_type ipv4_t {
-    fields {
-        version:        4;
-        ihl:            4;
-        diffserv:       8;
-        totalLen:       16;
-        identification: 16;
-        flags:          3;
-        fragOffset:     13;
-        ttl:            8;
-        protocol:       8;
-        hdrChecksum:    16;
-        srcAddr:        32;
-        dstAddr:        32;
-    }
-}
-header ipv4_t ipv4;
+struct meta_t {
+    bit<16> recirc_flag;
+    bit<32> sample;
+    bit<1> sample_01;
 
-header_type tcp_t {
-    fields {
-        srcPort:    16;
-        dstPort:    16;
-        seqNo:      32;
-        ackNo:      32;
-        dataOffset: 4;
-        res:        3;
-        ecn:        3;
-        ctrl:       6;
-        window:     16;
-        checksum:   16;
-        urgentPtr:  16;
-    }
-}
-header tcp_t tcp;
+    bit<1> recirced;
 
-header_type udp_t {
-    fields {
-        srcPort:    16;
-        dstPort:    16;
-        pkt_length: 16;
-        checksum:   16;
-    }
-}
-header udp_t udp;
+    bit<32> head;
+    bit<32> head_n;
+    bit<32> tail;
+    bit<32> tail_n;
+    bit<32> len;
+    bit<32> item_num;
+    bit<32> left_bound;
+    bit<32> right_bound;
+    bit<32> array_to_operate;
+    bit<32> busy;
+    bit<32> option_type;
 
-header_type pq_hdr_t {
-    fields {
-        op:         8;
-        priority:   8;
-        value:      32;
-        recirc_flag:16;
-    }
+    bit<32> theta;
+    bit<32> beta;
+    bit<32> gamma;
+    bit<32> filter_index;
+    bit<32> filter_index_n;
+    bit<32> filter_item;
+    bit<32> delete_index;
+    bit<32> delete_index_n;
+    bit<32> filter_item_2;
+    bit<32> old_beta;
+    bit<32> max_v;
+    bit<32> index_beta;
+    bit<32> index_gamma;
+    bit<32> to_delete_num;
+    bit<32> to_delete_num_n;
+    bit<32> head_v;
+    bit<32> coin;
+    bit<32> picked_value;
+    bit<32> value;
+    bit<32> a_value;
 }
-header pq_hdr_t pq_hdr;
 
-header_type recirculate_hdr_t {
-    fields {
-        busy: 32;
-        option_type: 32;
-        array_to_operate: 32;
-        theta: 32;
-        beta_ing: 32;
-        gamma_ing: 32;
-        index_beta_ing: 32;
-        index_gamma_ing: 32;
-        to_delete_num: 32;
-        head_v: 32;
-    }
+header ethernet_t {
+    bit<48> dstAddr;
+    bit<48> srcAddr;
+    bit<16> etherType;
 }
-header recirculate_hdr_t recirculate_hdr;
+
+header ipv4_t {
+    bit<4>  version;
+    bit<4>  ihl;
+    bit<8>  diffserv;
+    bit<16> totalLen;
+    bit<16> identification;
+    bit<3>  flags;
+    bit<13> fragOffset;
+    bit<8>  ttl;
+    bit<8>  protocol;
+    bit<16> hdrChecksum;
+    bit<32> srcAddr;
+    bit<32> dstAddr;
+}
+
+header tcp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<32> seqNo;
+    bit<32> ackNo;
+    bit<4>  dataOffset;
+    bit<3>  res;
+    bit<3>  ecn;
+    bit<6>  ctrl;
+    bit<16> window;
+    bit<16> checksum;
+    bit<16> urgentPtr;
+}
+
+header udp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<16> pkt_length;
+    bit<16> checksum;
+}
+
+header pq_hdr_t {
+    bit<8>  op;
+    bit<8>  priority;
+    bit<32> value;
+    bit<16> recirc_flag;
+}
+
+header recirculate_hdr_t {
+    bit<32> busy;
+    bit<32> option_type;
+    bit<32> array_to_operate;
+    bit<32> theta;
+    bit<32> beta_ing;
+    bit<32> gamma_ing;
+    bit<32> index_beta_ing;
+    bit<32> index_gamma_ing;
+    bit<32> to_delete_num;
+    bit<32> head_v;
+}
+
+struct metadata {
+    meta_t meta;
+}
+
+struct headers {
+    ethernet_t        ethernet;
+    ipv4_t            ipv4;
+    pq_hdr_t          pq_hdr;
+    recirculate_hdr_t recirculate_hdr;
+    tcp_t             tcp;
+    udp_t             udp;
+}

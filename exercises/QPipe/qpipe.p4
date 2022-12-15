@@ -4,7 +4,6 @@
 #include "includes/defines.p4"
 #include "includes/headers.p4"
 #include "includes/parser.p4"
-#include "routing.p4"
 #include "actions.p4"
 
 /*************************************************************************
@@ -32,7 +31,6 @@ register<bit<32>>(ARRAY_NUM) filter_index_register; // FIXME: maybe need to add 
 register<bit<32>>(ARRAY_NUM) delete_index_register;
 register<bit<32>>(ARRAY_NUM) minimum_register;
 register<bit<32>>(ARRAY_NUM) second_minimnum_register;
-register<bit<32>>(ARRAY_NUM) head_register;
 register<bit<32>>(1) array_to_operate_register; // FIXME: maybe need to add <bit<32>, bit<32>>
 register<bit<32>>(1) quantile_state_register;
 register<bit<32>>(1) option_type_register;
@@ -279,25 +277,25 @@ control recirculation_1 (inout headers hdr,
 
     apply {
         // ** stage 0
-        apply(set_option_type_table);
-        apply(set_array_to_operate_table);
+        set_option_type_table.apply();
+        set_array_to_operate_table.apply();
 
-        apply(set_quantile_state_table);
+        set_quantile_state_table.apply();
 
-
-        // ** stage 1
-        apply(set_to_delete_num_table);
 
         // ** stage 1
-        apply(set_beta_ing_table);
-        apply(set_gamma_ing_table);
+        set_to_delete_num_table.apply();
+
+        // ** stage 1
+        set_beta_ing_table.apply();
+        set_gamma_ing_table.apply();
 
         // ** stage 2
-        apply(set_index_beta_ing_table);
-        apply(set_index_gamma_ing_table);
+        set_index_beta_ing_table.apply();
+        set_index_gamma_ing_table.apply();
 
         // ** stage 3
-        apply(set_theta_table);
+        set_theta_table.apply();
     }
 }
 
@@ -306,26 +304,26 @@ control recirculation_2 (inout headers hdr,
                          inout standard_metadata_t standard_metadata) { //FIXME: check if relevant
     apply {
         // ** stage 0
-        apply(set_option_type_table);
+        set_option_type_table.apply();
 
-        apply(set_array_to_operate_table);
+        set_array_to_operate_table.apply();
 
-        apply(set_quantile_state_table);
+        set_quantile_state_table.apply();
 
-
-        // ** stage 1
-        apply(set_to_delete_num_table);
 
         // ** stage 1
-        apply(set_beta_ing_table);
-        apply(set_gamma_ing_table);
+        set_to_delete_num_table.apply();
+
+        // ** stage 1
+        set_beta_ing_table.apply();
+        set_gamma_ing_table.apply();
 
         // ** stage 2
-        apply(set_index_beta_ing_table);
-        apply(set_index_gamma_ing_table);
+        set_index_beta_ing_table.apply();
+        set_index_gamma_ing_table.apply();
 
         // ** stage 3
-        apply(set_theta_table);
+        set_theta_table.apply();
     }
 }
 
@@ -334,26 +332,26 @@ control recirculation_3 (inout headers hdr,
                          inout standard_metadata_t standard_metadata) { //FIXME: check if relevant
     apply {
         // ** stage 0
-        apply(set_option_type_table);
+        set_option_type_table.apply();
 
-        apply(set_array_to_operate_table);
+        set_array_to_operate_table.apply();
 
-        apply(set_quantile_state_table);
+        set_quantile_state_table.apply();
 
-
-        // ** stage 1
-        apply(set_to_delete_num_table);
 
         // ** stage 1
-        apply(set_beta_ing_table);
-        apply(set_gamma_ing_table);
+        set_to_delete_num_table.apply();
+
+        // ** stage 1
+        set_beta_ing_table.apply();
+        set_gamma_ing_table.apply();
 
         // ** stage 2
-        apply(set_index_beta_ing_table);
-        apply(set_index_gamma_ing_table);
+        set_index_beta_ing_table.apply();
+        set_index_gamma_ing_table.apply();
 
         // ** stage 3
-        apply(set_theta_table);
+        set_theta_table.apply();
     }
 }
 
@@ -384,9 +382,9 @@ control recirculation_4 (inout headers hdr,
     }
 
     apply {
-        apply(set_to_delete_num_1_table);
-        apply(put_value_to_theta_table);
-        apply(swap_value_beta_table);
+        set_to_delete_num_1_table.apply();
+        put_value_to_theta_table.apply();
+        swap_value_beta_table.apply();
     }
 }
 
@@ -417,10 +415,10 @@ control recirculation_5 (inout headers hdr,
     }
 
     apply {
-        // apply(put_value_to_theta_table);
-        apply(set_to_delete_num_2_table);
-        apply(put_value_to_theta_2_table);
-        apply(swap_value_gamma_table);
+        // put_value_to_theta_table.apply();
+        set_to_delete_num_2_table.apply();
+        put_value_to_theta_2_table.apply();
+        swap_value_gamma_table.apply();
     }
 }
 
@@ -428,27 +426,27 @@ control recirculation_6 (inout headers hdr,
                          inout metadata meta,
                          inout standard_metadata_t standard_metadata) { //FIXME: check if relevant
     apply {
-        // ** stage 0
-        apply(set_option_type_table);
+    // ** stage 0
+        set_option_type_table.apply();
 
-        apply(set_array_to_operate_table);
+        set_array_to_operate_table.apply();
 
-        apply(set_quantile_state_table);
+        set_quantile_state_table.apply();
 
-
-        // ** stage 1
-        apply(set_to_delete_num_table);
 
         // ** stage 1
-        apply(set_beta_ing_table);
-        apply(set_gamma_ing_table);
+        set_to_delete_num_table.apply();
+
+        // ** stage 1
+        set_beta_ing_table.apply();
+        set_gamma_ing_table.apply();
 
         // ** stage 2
-        apply(set_index_beta_ing_table);
-        apply(set_index_gamma_ing_table);
+        set_index_beta_ing_table.apply();
+        set_index_gamma_ing_table.apply();
 
         // ** stage 3
-        apply(set_theta_table);
+        set_theta_table.apply();
     }
 }
 
@@ -457,26 +455,26 @@ control recirculation_7 (inout headers hdr,
                          inout standard_metadata_t standard_metadata) { //FIXME: check if relevant
     apply {
         // ** stage 0
-        apply(set_option_type_table);
+        set_option_type_table.apply();
 
-        apply(set_array_to_operate_table);
+        set_array_to_operate_table.apply();
 
-        apply(set_quantile_state_table);
+        set_quantile_state_table.apply();
 
-
-        // ** stage 1
-        apply(set_to_delete_num_table);
 
         // ** stage 1
-        apply(set_beta_ing_table);
-        apply(set_gamma_ing_table);
+        set_to_delete_num_table.apply();
+
+        // ** stage 1
+        set_beta_ing_table.apply();
+        set_gamma_ing_table.apply();
 
         // ** stage 2
-        apply(set_index_beta_ing_table);
-        apply(set_index_gamma_ing_table);
+        set_index_beta_ing_table.apply();
+        set_index_gamma_ing_table.apply();
 
         // ** stage 3
-        apply(set_theta_table);
+        set_theta_table.apply();
     }
 }
 
@@ -512,14 +510,14 @@ control inc_tail (inout headers hdr,
     }
 
     apply {
-        apply(inc_tail_read_table);
+        inc_tail_read_table.apply();
         if (meta.tail == meta.right_bound) {
-            apply(inc_tail_left_bound_table);
+            inc_tail_left_bound_table.apply();
         }
         else {
-            apply(inc_tail_plus_table);
+            inc_tail_plus_table.apply();
         }
-        apply(inc_tail_write_table);
+        inc_tail_write_table.apply();
     }
 }
 
@@ -555,14 +553,14 @@ control inc_tail_2 (inout headers hdr,
     }
 
     apply {
-        apply(inc_tail_2_read_table);
+        inc_tail_2_read_table.apply();
         if (meta.tail == meta.right_bound) {
-            apply(inc_tail_2_left_bound_table);
+            inc_tail_2_left_bound_table.apply();
         }
         else {
-            apply(inc_tail_2_plus_table);
+            inc_tail_2_plus_table.apply();
         }
-        apply(inc_tail_2_write_table);
+        inc_tail_2_write_table.apply();
     }
 }
 
@@ -591,11 +589,11 @@ control inc_item_num (inout headers hdr,
     }
 
     apply {
-        apply(inc_item_num_read_table);
+        inc_item_num_read_table.apply();
         if (meta.item_num != meta.len) {
-            apply(inc_item_num_plus_table);
+            inc_item_num_plus_table.apply();
         }
-        apply(inc_item_num_write_table);
+        inc_item_num_write_table.apply();
     }
 }
 
@@ -631,14 +629,14 @@ control inc_filter_index (inout headers hdr,
     }
 
     apply {
-        apply(inc_filter_index_read_table);
+        inc_filter_index_read_table.apply();
         if (meta.filter_index == meta.right_bound) {
-            apply(inc_filter_index_left_bound_table);
+            inc_filter_index_left_bound_table.apply();
         }
         else {
-            apply(inc_filter_index_plus_table);
+            inc_filter_index_plus_table.apply();
         }
-        apply(inc_filter_index_write_table);
+        inc_filter_index_write_table.apply();
     }
 }
 
@@ -660,9 +658,9 @@ control fetch_item (inout headers hdr,
     }
 
     apply {
-        apply(fetch_item_read_table);
+        fetch_item_read_table.apply();
         if (meta.a_value > meta.theta) {
-            apply(fetch_item_assign_value_table);
+            fetch_item_assign_value_table.apply();
         }
     }
 }
@@ -685,9 +683,9 @@ control fetch_item_2 (inout headers hdr,
     }
 
     apply {
-        apply(fetch_item_2_read_table);
+        fetch_item_2_read_table.apply();
         if (meta.a_value > meta.theta) {
-            apply(fetch_item_2_assign_value_table);
+            fetch_item_2_assign_value_table.apply();
         }
     }
 }
@@ -710,9 +708,9 @@ control filter_beta (inout headers hdr,
     }
 
     apply {
-        apply(filter_beta_read_table);
+        filter_beta_read_table.apply();
         if ((meta.old_beta > meta.filter_item) && (meta.filter_item != 0)) {
-            apply(filter_beta_write_table);
+            filter_beta_write_table.apply();
         }
     }
 }
@@ -742,11 +740,11 @@ control filter_gamma (inout headers hdr,
     }
 
     apply {
-        apply(filter_gamma_read_table);
+        filter_gamma_read_table.apply();
         if ((meta.gamma > meta.max_v) && (meta.filter_item != 0)) {
-            apply(filter_gamma_assign_value_table);
+            filter_gamma_assign_value_table.apply();
         }
-        apply(filter_gamma_write_table);
+        filter_gamma_write_table.apply();
     }
 }
 
@@ -782,14 +780,14 @@ control inc_delete_index (inout headers hdr,
     }
 
     apply {
-        apply(inc_delete_index_read_table);
+        inc_delete_index_read_table.apply();
         if (meta.delete_index == meta.right_bound) {
-            apply(inc_delete_index_left_bound_table);
+            inc_delete_index_left_bound_table.apply();
         }
         else {
-            apply(inc_delete_index_plus_table);
+            inc_delete_index_plus_table.apply();
         }
-        apply(inc_delete_index_write_table);
+        inc_delete_index_write_table.apply();
     }
 }
 
@@ -825,14 +823,14 @@ control dec_to_delete_num (inout headers hdr,
     }
 
     apply {
-        apply(dec_to_delete_num_read_table);
+        dec_to_delete_num_read_table.apply();
         if ((meta.to_delete_num > 0) && (meta.option_type == EXE_DELETE_OPTION)) {
-            apply(dec_to_delete_num_minus_table);
+            dec_to_delete_num_minus_table.apply();
         }
         else {
-            apply(dec_to_delete_num_unchanged_table);
+            dec_to_delete_num_unchanged_table.apply();
         }
-        apply(dec_to_delete_num_write_table);
+        dec_to_delete_num_write_table.apply();
     }
 }
 
@@ -868,14 +866,14 @@ control inc_head (inout headers hdr,
     }
 
     apply {
-        apply(inc_head_read_table);
+        inc_head_read_table.apply();
         if (meta.head == meta.right_bound) {
-            apply(inc_head_left_bound_table);
+            inc_head_left_bound_table.apply();
         }
         else {
-            apply(inc_head_plus_table);
+            inc_head_plus_table.apply();
         }
-        apply(inc_head_write_table);
+        inc_head_write_table.apply();
     }
 }
 /*************************************************************************
@@ -885,6 +883,17 @@ control inc_head (inout headers hdr,
 control ingress (inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
+    action set_egress(bit<9> egress_spec, bit<48> smac, bit<48> dmac) {
+        standard_metadata.egress_spec = egress_spec;
+        hdr.ethernet.srcAddr = smac;
+        hdr.ethernet.dstAddr = dmac;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+
+    action _drop() {
+        mark_to_drop(standard_metadata);
+    }
+
     table ipv4_route {
         key = {
             hdr.ipv4.dstAddr: lpm;
@@ -1151,12 +1160,12 @@ control ingress (inout headers hdr,
 
     apply
     {
-        apply(ipv4_route);
+        ipv4_route.apply();
         if (valid(pq_hdr)) {
             if (pq_hdr.recirc_flag == 0) {
                 // ** sample pkt
-                apply(sample_table);
-                apply(sample_01_table);
+                sample_table.apply();
+                sample_01_table.apply();
 
                 get_basic_info.apply(hdr, meta, standard_metadata);
                 if (meta.sample == 1) {
@@ -1166,19 +1175,19 @@ control ingress (inout headers hdr,
                         // ** stage 4
                         // ** put the value into the array
 
-                        // apply(inc_tail_table);
-                        inc_tail();
+                        // inc_tail_table.apply();
+                        inc_tail.apply(hdr, meta, standard_metadata);
 
                         // ** stage 5
-                        apply(inc_item_num_table);
-                        inc_item_num();
+                        inc_item_num_table.apply();
+                        inc_item_num.apply(hdr, meta, standard_metadata);
 
                         // ** stage 6
-                        apply(put_into_array_table);
+                        put_into_array_table.apply();
 
                         if (meta.item_num == meta.len) {
                             // ** stage 10
-                            apply(mark_to_resubmit_1_table);
+                            mark_to_resubmit_1_table.apply();
                         }
                     }
                 }
@@ -1186,136 +1195,136 @@ control ingress (inout headers hdr,
                     if (meta.option_type == FILTER_OPTION) {
                         // ** stage 4
                         // ** filter minimum
-                        // apply(inc_filter_index_table);
-                        inc_filter_index();
+                        // inc_filter_index_table.apply();
+                        inc_filter_index.apply(hdr, meta, standard_metadata);
 
                         // ** stage 6
-                        // apply(fetch_item_table);
-                        fetch_item();
+                        // fetch_item_table.apply();
+                        fetch_item.apply(hdr, meta, standard_metadata);
 
                         // ** stage 7
-                        // apply(filter_beta_table);
-                        filter_beta();
+                        // filter_beta_table.apply();
+                        filter_beta.apply(hdr, meta, standard_metadata);
 
                         if (meta.filter_item != 0) {
                             // ** stage 8
                             // meta.max = max(meta.filter_item, meta.old_beta)
-                            apply(get_max_table);
+                            get_max_table.apply();
                             // meta.beta = min(meta.filter_item, meta.old_beta)
-                            apply(get_min_table);
+                            get_min_table.apply();
                         }
                         // ** stage 9
-                        // apply(filter_gamma_table);
-                        filter_gamma();
+                        // filter_gamma_table.apply();
+                        filter_gamma.apply(hdr, meta, standard_metadata);
 
                         if (meta.filter_index == meta.tail) {
                             // ** stage 10
-                            apply(mark_to_resubmit_2_table);
-                            // apply(resubmit_1_table);
+                            mark_to_resubmit_2_table.apply();
+                            // resubmit_1_table.apply();
                         }
                     }
                     else if (meta.option_type == PRE_DELETE_OPTION) {
                         // ** stage 4
                         // ** find the item to delete
-                        // apply(inc_delete_index_table);
-                        inc_delete_index();
+                        // inc_delete_index_table.apply();
+                        inc_delete_index.apply(hdr, meta, standard_metadata);
 
                         // ** stage 6
-                        // apply(fetch_item_2_table);
-                        fetch_item_2();
+                        // fetch_item_2_table.apply();
+                        fetch_item_2.apply(hdr, meta, standard_metadata);
 
                         if (meta.beta == meta.filter_item) {
                             // ** stage 7
-                            apply(mark_index_beta_table);
+                            mark_index_beta_table.apply();
                             // ** stage 7
-                            apply(get_index_gamma_table);
+                            get_index_gamma_table.apply();
                         }
                         else {
                             // ** stage 7
-                            apply(get_index_beta_table);
+                            get_index_beta_table.apply();
                             // ** stage 7
                             if (meta.gamma == meta.filter_item) {
-                                apply(mark_index_gamma_table);
+                                mark_index_gamma_table.apply();
                             }
                             else {
-                                apply(get_index_gamma_table);
+                                get_index_gamma_table.apply();
                             }
                         }
 
                         if (meta.delete_index == meta.tail) {
                             // ** stage 10
-                            apply(mark_to_resubmit_3_table);
+                            mark_to_resubmit_3_table.apply();
                         }
                     }
                     else if (meta.option_type == EXE_DELETE_OPTION) {
 
                         if (meta.to_delete_num == 0) {
-                            // // apply(inc_array_to_operate_table);
+                            // // inc_array_to_operate_table.apply();
 
                             // ** stage 4
-                            // apply(inc_tail_2_table);
-                            inc_tail_2();
+                            // inc_tail_2_table.apply();
+                            inc_tail_2.apply(hdr, meta, standard_metadata);
 
                             // ** stage 5
                             if (meta.sample_01 == 0) {
-                                apply(pick_beta_table);
+                                pick_beta_table.apply();
                             }
                             else {
-                                apply(pick_gamma_table);
+                                pick_gamma_table.apply();
                             }
-                            apply(inc_item_num_2_table);
+                            inc_item_num_2_table.apply();
 
                             // ** stage 6
-                            apply(push_value_table);
+                            push_value_table.apply();
 
                             if (meta.item_num == meta.len) {
-                                apply(mark_to_resubmit_6_table);
+                                mark_to_resubmit_6_table.apply();
                             }
                             else {
-                                apply(mark_to_resubmit_7_table);
+                                mark_to_resubmit_7_table.apply();
                             }
 
                         }
                         else {
                             // ** stage 5
-                            // apply(inc_head_table);
-                            inc_head();
+                            // inc_head_table.apply();
+                            inc_head.apply(hdr, meta, standard_metadata);
 
                             // ** stage 6
-                            apply(get_head_value_table);
+                            get_head_value_table.apply();
                             if (meta.to_delete_num == 2) {
                                 // ** stage 10
-                                apply(mark_to_resubmit_4_table);
+                                mark_to_resubmit_4_table.apply();
                             }
                             else if (meta.to_delete_num == 1) {
                                 // ** stage 10
-                                apply(mark_to_resubmit_5_table);
+                                mark_to_resubmit_5_table.apply();
                             }
                         }
                     }
                 }
-                apply(resubmit_1_table);
+                resubmit_1_table.apply();
             }
             else if (pq_hdr.recirc_flag == 1) {
-                recirculation_1();
+                recirculation_1.apply(hdr, meta, standard_metadata);
             }
             else if (pq_hdr.recirc_flag == 2) {
-                recirculation_1();
+                recirculation_1.apply(hdr, meta, standard_metadata);
             }
             else if (pq_hdr.recirc_flag == 3) {
-                recirculation_1();
+                recirculation_1.apply(hdr, meta, standard_metadata);
             }
             else if (pq_hdr.recirc_flag == 4) {
-                recirculation_4();
+                recirculation_4.apply(hdr, meta, standard_metadata);
             }
             else if (pq_hdr.recirc_flag == 5) {
-                recirculation_5();
+                recirculation_5.apply(hdr, meta, standard_metadata);
             }
             else if (pq_hdr.recirc_flag == 6) {
-                recirculation_1();
+                recirculation_1.apply(hdr, meta, standard_metadata);
             }
             else if (pq_hdr.recirc_flag == 7) {
-                recirculation_1();
+                recirculation_1.apply(hdr, meta, standard_metadata);
             }
         }
     }

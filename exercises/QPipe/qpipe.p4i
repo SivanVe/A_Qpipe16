@@ -1,0 +1,1965 @@
+# 1 "qpipe.p4"
+# 1 "<built-in>"
+# 1 "<command-line>"
+# 1 "qpipe.p4"
+# 1 "includes/defines.p4" 1
+# 2 "qpipe.p4" 2
+# 1 "includes/headers.p4" 1
+header_type ethernet_t {
+    fields {
+        dstAddr: 48;
+        srcAddr: 48;
+        etherType: 16;
+    }
+}
+header ethernet_t ethernet;
+
+header_type ipv4_t {
+    fields {
+        version: 4;
+        ihl: 4;
+        diffserv: 8;
+        totalLen: 16;
+        identification: 16;
+        flags: 3;
+        fragOffset: 13;
+        ttl: 8;
+        protocol: 8;
+        hdrChecksum: 16;
+        srcAddr: 32;
+        dstAddr: 32;
+    }
+}
+header ipv4_t ipv4;
+
+header_type tcp_t {
+    fields {
+        srcPort: 16;
+        dstPort: 16;
+        seqNo: 32;
+        ackNo: 32;
+        dataOffset: 4;
+        res: 3;
+        ecn: 3;
+        ctrl: 6;
+        window: 16;
+        checksum: 16;
+        urgentPtr: 16;
+    }
+}
+header tcp_t tcp;
+
+header_type udp_t {
+    fields {
+        srcPort: 16;
+        dstPort: 16;
+        pkt_length: 16;
+        checksum: 16;
+    }
+}
+header udp_t udp;
+
+header_type pq_hdr_t {
+    fields {
+        op: 8;
+        priority: 8;
+        value: 32;
+        recirc_flag:16;
+    }
+}
+header pq_hdr_t pq_hdr;
+
+header_type recirculate_hdr_t {
+    fields {
+        busy: 32;
+        option_type: 32;
+        array_to_operate: 32;
+        theta: 32;
+        beta_ing: 32;
+        gamma_ing: 32;
+        index_beta_ing: 32;
+        index_gamma_ing: 32;
+        to_delete_num: 32;
+        head_v: 32;
+    }
+}
+header recirculate_hdr_t recirculate_hdr;
+# 3 "qpipe.p4" 2
+# 1 "includes/parser.p4" 1
+parser start {
+    return parse_ethernet;
+}
+
+parser parse_ethernet {
+    extract (ethernet);
+    return select (latest.etherType) {
+        0x0800: parse_ipv4;
+        default: ingress;
+    }
+}
+
+parser parse_ipv4 {
+    extract (ipv4);
+    return select (latest.protocol) {
+        6: parse_tcp;
+        17: parse_udp;
+        default: ingress;
+    }
+}
+
+field_list ipv4_field_list {
+    ipv4.version;
+    ipv4.ihl;
+    ipv4.diffserv;
+    ipv4.totalLen;
+    ipv4.identification;
+    ipv4.flags;
+    ipv4.fragOffset;
+    ipv4.ttl;
+    ipv4.protocol;
+    ipv4.srcAddr;
+    ipv4.dstAddr;
+}
+
+field_list_calculation ipv4_chksum_calc {
+    input {
+        ipv4_field_list;
+    }
+    algorithm: csum16;
+    output_width: 16;
+}
+
+calculated_field ipv4.hdrChecksum {
+    update ipv4_chksum_calc;
+}
+
+parser parse_tcp {
+    extract (tcp);
+    return ingress;
+}
+
+parser parse_udp {
+    extract (udp);
+    return select (latest.dstPort) {
+        8888: parse_pq_hdr;
+        default: ingress;
+    }
+}
+
+/*
+
+field_list udp_field_list {
+
+    udp.srcPort;
+
+    udp.dstPort;
+
+    udp.pkt_length;
+
+    udp.checksum;
+
+}
+
+field_list_calculation udp_chksum_calc {
+
+    input {
+
+        udp_field_list;
+
+    }
+
+    algorithm: csum16;
+
+    output_width: 16;
+
+}
+
+calculated_field udp.checksum {
+
+    update udp_chksum_calc;
+
+}
+
+*/
+# 80 "includes/parser.p4"
+parser parse_pq_hdr {
+    extract (pq_hdr);
+    return select (latest.recirc_flag) {
+        1: parse_recirculate_hdr;
+        default: ingress;
+    }
+}
+
+parser parse_recirculate_hdr {
+    extract (recirculate_hdr);
+    return ingress;
+}
+
+/*
+
+parser parse_nlk_hdr {
+
+    extract (nlk_hdr);
+
+    return select (latest.recirc_flag) {
+
+        RECIRCULATED_1: parse_recirculate_hdr;
+
+        RECIRCULATED_2: parse_recirculate_hdr;
+
+        default: ingress;
+
+    }
+
+}
+
+
+
+parser parse_recirculate_hdr {
+
+    extract (recirculate_hdr);
+
+    return ingress;
+
+}
+
+
+
+parser parse_adm_hdr {
+
+    extract (adm_hdr);
+
+    return ingress;
+
+}
+
+*/
+# 4 "qpipe.p4" 2
+# 1 "routing.p4" 1
+action set_egress(egress_spec) {
+    modify_field(standard_metadata.egress_spec, egress_spec);
+    add_to_field(ipv4.ttl, -1);
+}
+
+table ipv4_route {
+    reads {
+        ipv4.dstAddr : exact;
+    }
+    actions {
+        set_egress;
+        _drop;
+    }
+    size : 8192;
+}
+
+action ethernet_set_mac_act (smac, dmac) {
+    modify_field (ethernet.srcAddr, smac);
+    modify_field (ethernet.dstAddr, dmac);
+}
+
+table ethernet_set_mac {
+    reads {
+        standard_metadata.egress_port: exact;
+    }
+    actions {
+        ethernet_set_mac_act;
+        _no_op;
+    }
+}
+
+action _no_op() {
+    no_op();
+}
+
+action _drop() {
+    drop();
+}
+# 5 "qpipe.p4" 2
+# 1 "actions.p4" 1
+action get_pkt_info_action() {
+    modify_field(meta.value, pq_hdr.value);
+}
+
+action sample_action() {
+    modify_field_rng_uniform(meta.sample, 0, 255);
+}
+
+action sample_01_action() {
+    modify_field_rng_uniform(meta.sample_01, 0, 1);
+}
+
+action get_array_to_operate_action() {
+    register_read(meta.array_to_operate, array_to_operate_register, 0);
+}
+
+action get_quantile_state_action() {
+    register_read(meta.busy, quantile_state_register, 0);
+}
+
+action get_option_type_action() {
+    register_read(meta.option_type, option_type_register, 0);
+}
+
+action get_theta_action() {
+    register_read(meta.theta, theta_register, meta.array_to_operate);
+}
+
+action get_beta_action() {
+    register_read(meta.beta, beta_ing_register, 0);
+}
+
+action get_gamma_action() {
+    register_read(meta.gamma, gamma_ing_register, 0);
+}
+
+
+
+action get_left_bound_action() {
+    register_read(meta.left_bound, left_bound_register, meta.array_to_operate);
+}
+
+action get_right_bound_action() {
+    register_read(meta.right_bound, right_bound_register, meta.array_to_operate);
+}
+
+action get_length_action() {
+    register_read(meta.len, length_register, meta.array_to_operate);
+}
+
+action inc_tail_action() {
+
+}
+
+action inc_item_num_action() {
+}
+
+action put_into_array_action() {
+    register_write(a_register, meta.tail, meta.value);
+}
+
+action mark_to_resubmit_1_action() {
+    modify_field(pq_hdr.recirc_flag, 1);
+    add_header(recirculate_hdr);
+    // ** recirculate_hdr.busy = 1;
+    modify_field(recirculate_hdr.busy, 1);
+    // ** recirculate_hdr.array_to_operate = meta.array_to_operate;
+    modify_field(recirculate_hdr.array_to_operate, meta.array_to_operate);
+    // ** recirculate_hdr.option_type = filter
+    modify_field(recirculate_hdr.option_type, 1);
+
+    modify_field(recirculate_hdr.theta, meta.theta);
+    modify_field(recirculate_hdr.beta_ing, meta.beta);
+    modify_field(recirculate_hdr.gamma_ing, meta.gamma);
+
+    modify_field(recirculate_hdr.index_beta_ing, meta.index_beta);
+    modify_field(recirculate_hdr.index_gamma_ing, meta.index_gamma);
+
+    modify_field(recirculate_hdr.to_delete_num, 0);
+}
+
+action resubmit_1_action() {
+//    recirculate(rec_fl);
+    // recirculate(68);
+    modify_field(meta.recirced, 1);
+}
+
+action set_array_to_operate_action() {
+    register_write(array_to_operate_register, 0, recirculate_hdr.array_to_operate);
+}
+
+action set_quantile_state_action() {
+    register_write(quantile_state_register, 0, recirculate_hdr.busy);
+}
+
+action set_option_type_action() {
+    register_write(option_type_register, 0, recirculate_hdr.option_type);
+}
+
+action inc_filter_index_action() {
+}
+
+action fetch_item_action() {
+}
+
+action filter_beta_action() {
+}
+
+action filter_gamma_action() {
+}
+
+action pass_gamma_to_next_stage_action() {
+    modify_field(meta.filter_item_2, meta.gamma);
+}
+
+action set_gamma_meta_action() {
+    modify_field(meta.gamma, meta.filter_item);
+}
+
+action pass_filtered_to_next_stage_action() {
+    modify_field(meta.filter_item_2, meta.filter_item);
+}
+
+action mark_to_resubmit_2_action() {
+    modify_field(pq_hdr.recirc_flag, 2);
+    add_header(recirculate_hdr);
+    // ** recirculate_hdr.busy = 1;
+    modify_field(recirculate_hdr.busy, 1);
+    // ** recirculate_hdr.array_to_operate = meta.array_to_operate;
+    modify_field(recirculate_hdr.array_to_operate, meta.array_to_operate);
+    // ** recirculate_hdr.option_type = PRE_DELETE_OPTION
+    modify_field(recirculate_hdr.option_type, 2);
+
+    modify_field(recirculate_hdr.theta, meta.gamma);
+    modify_field(recirculate_hdr.beta_ing, meta.beta);
+    modify_field(recirculate_hdr.gamma_ing, meta.gamma);
+
+    modify_field(recirculate_hdr.index_beta_ing, meta.index_beta);
+    modify_field(recirculate_hdr.index_gamma_ing, meta.index_gamma);
+
+    modify_field(recirculate_hdr.to_delete_num, 0);
+}
+
+action set_theta_action() {
+    register_write(theta_register, 0, recirculate_hdr.theta);
+}
+
+action set_beta_ing_action() {
+    register_write(beta_ing_register, 0, recirculate_hdr.beta_ing);
+}
+
+action set_gamma_ing_action() {
+    register_write(gamma_ing_register, 0, recirculate_hdr.gamma_ing);
+}
+
+action inc_delete_index_action() {
+}
+
+action fetch_item_2_action() {
+}
+
+
+action get_max_action() {
+    max(meta.max_v, meta.filter_item, meta.old_beta);
+}
+
+action get_min_action() {
+    max(meta.beta, meta.filter_item, meta.old_beta);
+}
+
+action mark_index_beta_action() {
+    register_write(index_beta_exg_register, 0, meta.delete_index);
+    modify_field(meta.index_beta, meta.delete_index);
+}
+
+action get_index_beta_action() {
+    register_read(meta.index_beta, index_beta_exg_register, 0);
+}
+
+action mark_index_gamma_action() {
+    register_write(index_gamma_exg_register, 0, meta.delete_index);
+    modify_field(meta.index_gamma, meta.delete_index);
+}
+
+action get_index_gamma_action() {
+    register_read(meta.index_gamma, index_gamma_exg_register, 0);
+}
+
+action mark_to_resubmit_3_action() {
+    modify_field(pq_hdr.recirc_flag, 3);
+    add_header(recirculate_hdr);
+    // ** recirculate_hdr.busy = 1;
+    modify_field(recirculate_hdr.busy, 1);
+    // ** recirculate_hdr.array_to_operate = meta.array_to_operate;
+    modify_field(recirculate_hdr.array_to_operate, meta.array_to_operate);
+    // ** recirculate_hdr.option_type = PRE_DELETE_OPTION
+    modify_field(recirculate_hdr.option_type, 3);
+
+    modify_field(recirculate_hdr.theta, meta.gamma);
+    modify_field(recirculate_hdr.beta_ing, meta.beta);
+    modify_field(recirculate_hdr.gamma_ing, meta.gamma);
+
+    modify_field(recirculate_hdr.index_beta_ing, meta.index_beta);
+    modify_field(recirculate_hdr.index_gamma_ing, meta.index_gamma);
+
+    modify_field(recirculate_hdr.to_delete_num, 2);
+}
+
+action set_index_beta_ing_action() {
+    register_write(index_beta_ing_register, 0, recirculate_hdr.index_beta_ing);
+}
+
+action set_index_gamma_ing_action() {
+    register_write(index_gamma_ing_register, 0, recirculate_hdr.index_gamma_ing);
+}
+
+action get_index_beta_ing_action() {
+    register_read(meta.index_beta, index_beta_ing_register, 0);
+}
+
+action get_index_gamma_ing_action() {
+    register_read(meta.index_gamma, index_gamma_ing_register, 0);
+}
+
+action set_to_delete_num_action() {
+    register_write(to_delete_num_register, 0, recirculate_hdr.to_delete_num);
+}
+
+action dec_to_delete_num_action() {
+}
+
+action inc_head_action() {
+}
+
+action get_head_value_action() {
+    register_read(meta.head_v, a_register, meta.head);
+}
+
+action mark_to_resubmit_4_action() {
+    modify_field(pq_hdr.recirc_flag, 4);
+    add_header(recirculate_hdr);
+    // ** recirculate_hdr.busy = 1;
+    modify_field(recirculate_hdr.busy, 1);
+    // ** recirculate_hdr.array_to_operate = meta.array_to_operate;
+    modify_field(recirculate_hdr.array_to_operate, meta.array_to_operate);
+    // ** recirculate_hdr.option_type = PRE_DELETE_OPTION
+    modify_field(recirculate_hdr.option_type, 3);
+
+    modify_field(recirculate_hdr.theta, meta.gamma);
+    modify_field(recirculate_hdr.beta_ing, meta.beta);
+    modify_field(recirculate_hdr.gamma_ing, meta.gamma);
+
+    modify_field(recirculate_hdr.index_beta_ing, meta.index_beta);
+    modify_field(recirculate_hdr.index_gamma_ing, meta.index_gamma);
+
+    modify_field(recirculate_hdr.to_delete_num, 1);
+
+    modify_field(recirculate_hdr.head_v, meta.head_v);
+}
+
+action mark_to_resubmit_5_action() {
+    modify_field(pq_hdr.recirc_flag, 5);
+    add_header(recirculate_hdr);
+    // ** recirculate_hdr.busy = 1;
+    modify_field(recirculate_hdr.busy, 1);
+    // ** recirculate_hdr.array_to_operate = meta.array_to_operate;
+    modify_field(recirculate_hdr.array_to_operate, meta.array_to_operate);
+    // ** recirculate_hdr.option_type = PRE_DELETE_OPTION
+    modify_field(recirculate_hdr.option_type, 3);
+
+    modify_field(recirculate_hdr.theta, meta.gamma);
+    modify_field(recirculate_hdr.beta_ing, meta.beta);
+    modify_field(recirculate_hdr.gamma_ing, meta.gamma);
+
+    modify_field(recirculate_hdr.index_beta_ing, meta.index_beta);
+    modify_field(recirculate_hdr.index_gamma_ing, meta.index_gamma);
+
+    modify_field(recirculate_hdr.to_delete_num, 0);
+
+    modify_field(recirculate_hdr.head_v, meta.head_v);
+}
+
+action swap_value_beta_action() {
+    register_write(a_register, recirculate_hdr.index_beta_ing, meta.value);
+}
+
+action swap_value_gamma_action() {
+    register_write(a_register, recirculate_hdr.index_gamma_ing, meta.value);
+}
+
+action put_value_to_theta_action() {
+    modify_field(meta.value, recirculate_hdr.head_v);
+}
+
+action inc_meta_array_to_operate_action() {
+    add_to_field(meta.array_to_operate, 1);
+}
+
+action pick_beta_action() {
+    modify_field(meta.picked_value, meta.beta);
+}
+
+action pick_gamma_action() {
+    modify_field(meta.picked_value, meta.gamma);
+}
+
+action push_value_action() {
+    register_write(a_register, meta.tail, meta.value);
+}
+
+action mark_to_resubmit_6_action() {
+    modify_field(pq_hdr.recirc_flag, 6);
+    add_header(recirculate_hdr);
+    // ** recirculate_hdr.busy = 1;
+    modify_field(recirculate_hdr.busy, 1);
+    // ** recirculate_hdr.array_to_operate = meta.array_to_operate;
+    modify_field(recirculate_hdr.array_to_operate, meta.array_to_operate);
+    // ** recirculate_hdr.option_type = PRE_DELETE_OPTION
+    modify_field(recirculate_hdr.option_type, 1);
+
+    modify_field(recirculate_hdr.theta, meta.gamma);
+    modify_field(recirculate_hdr.beta_ing, meta.beta);
+    modify_field(recirculate_hdr.gamma_ing, meta.gamma);
+
+    modify_field(recirculate_hdr.index_beta_ing, meta.index_beta);
+    modify_field(recirculate_hdr.index_gamma_ing, meta.index_gamma);
+
+    modify_field(recirculate_hdr.to_delete_num, 0);
+
+    modify_field(recirculate_hdr.head_v, meta.head_v);
+}
+
+action mark_to_resubmit_7_action() {
+    modify_field(pq_hdr.recirc_flag, 7);
+    add_header(recirculate_hdr);
+    // ** recirculate_hdr.busy = 1;
+    modify_field(recirculate_hdr.busy, 0);
+    // ** recirculate_hdr.array_to_operate = meta.array_to_operate;
+    modify_field(recirculate_hdr.array_to_operate, 0);
+    // ** recirculate_hdr.option_type = PRE_DELETE_OPTION
+    modify_field(recirculate_hdr.option_type, 0);
+
+    modify_field(recirculate_hdr.theta, 0);
+    modify_field(recirculate_hdr.beta_ing, 0);
+    modify_field(recirculate_hdr.gamma_ing, 0);
+
+    modify_field(recirculate_hdr.index_beta_ing, 0);
+    modify_field(recirculate_hdr.index_gamma_ing, 0);
+
+    modify_field(recirculate_hdr.to_delete_num, 0);
+
+    modify_field(recirculate_hdr.head_v, 0);
+}
+
+// inc_tail
+action inc_tail_read_action() {
+    register_read(meta.tail, tail_register, meta.array_to_operate);
+}
+
+action inc_tail_left_bound_action() {
+    // meta.tail_n = meta.left_bound
+    modify_field(meta.tail_n, meta.left_bound);
+}
+
+action inc_tail_plus_action() {
+    // meta.tail_n = meta.tail + 1
+    add(meta.tail_n, meta.tail, 1);
+}
+
+action inc_tail_write_action() {
+    register_write(tail_register, meta.array_to_operate, meta.tail_n);
+}
+
+// inc_item_num
+action inc_item_num_read_action() {
+    register_read(meta.item_num, item_num_register, meta.array_to_operate);
+}
+
+action inc_item_num_plus_action() {
+    // meta.item_num ++
+    add_to_field(meta.item_num, 1);
+}
+
+action inc_item_num_write_action() {
+    register_write(item_num_register, meta.array_to_operate, meta.item_num);
+}
+
+// inc_filter_index
+action inc_filter_index_read_action() {
+    register_read(meta.filter_index, filter_index_register, meta.array_to_operate);
+}
+
+action inc_filter_index_left_bound_action() {
+    modify_field(meta.filter_index_n, meta.left_bound);
+}
+
+action inc_filter_index_plus_action() {
+    add(meta.filter_index_n, meta.filter_index, 1);
+}
+
+action inc_filter_index_write_action() {
+    register_write(filter_index_register, meta.array_to_operate, meta.filter_index_n);
+}
+
+// fetch_item
+action fetch_item_read_action() {
+    register_read(meta.a_value, a_register, meta.array_to_operate);
+}
+
+action fetch_item_assign_value_action() {
+    // meta.filter_item = meta.a_value
+    modify_field(meta.filter_item, meta.a_value);
+}
+
+action fetch_item_2_read_action() {
+    register_read(meta.a_value, a_register, meta.delete_index);
+}
+
+// filter_beta
+action filter_beta_read_action() {
+    register_read(meta.old_beta, beta_exg_register, 0);
+}
+
+action filter_beta_write_action() {
+    register_write(beta_exg_register, 0, meta.filter_item);
+}
+
+// filter_gamma
+action filter_gamma_read_action() {
+    register_read(meta.gamma, gamma_exg_register, 0);
+}
+
+action filter_gamma_assign_value_action() {
+    modify_field(meta.gamma, meta.max_v);
+}
+
+action filter_gamma_write_action() {
+    register_write(gamma_exg_register, 0, meta.gamma);
+}
+
+// inc_delete_index
+action inc_delete_index_read_action() {
+    register_read(meta.delete_index, delete_index_register, meta.array_to_operate);
+}
+
+action inc_delete_index_left_bound_action() {
+    modify_field(meta.delete_index_n, meta.left_bound);
+}
+
+action inc_delete_index_plus_action() {
+    add(meta.delete_index_n, meta.delete_index, 1);
+}
+
+action inc_delete_index_write_action() {
+    register_write(delete_index_register, meta.array_to_operate, meta.delete_index_n);
+}
+
+// dec_to_delete_num
+action dec_to_delete_num_read_action() {
+    register_read(meta.to_delete_num, to_delete_num_register, 0);
+}
+
+action dec_to_delete_num_minus_action() {
+    subtract(meta.to_delete_num_n, meta.to_delete_num, 1);
+}
+
+action dec_to_delete_num_unchanged_action() {
+    modify_field(meta.to_delete_num_n, meta.to_delete_num);
+}
+
+action dec_to_delete_num_write_action() {
+    register_write(to_delete_num_register, 0, meta.to_delete_num_n);
+}
+
+// inc_head
+action inc_head_read_action() {
+    register_read(meta.head, head_register, meta.array_to_operate);
+}
+
+action inc_head_left_bound_action() {
+    modify_field(meta.head_n, meta.left_bound);
+}
+
+action inc_head_plus_action() {
+    add(meta.head_n, meta.head, 1);
+}
+
+action inc_head_write_action() {
+    register_write(head_register, meta.array_to_operate, meta.head_n);
+}
+# 6 "qpipe.p4" 2
+# 1 "tables.p4" 1
+table get_pkt_info_table {
+    actions { get_pkt_info_action; }
+    default_action: get_pkt_info_action;
+}
+
+table sample_table {
+    actions { sample_action; }
+    default_action: sample_action;
+}
+
+table sample_01_table {
+    actions { sample_01_action; }
+    default_action: sample_01_action;
+}
+
+@pragma stage 0
+table get_array_to_operate_table {
+    actions { get_array_to_operate_action; }
+    default_action: get_array_to_operate_action;
+}
+
+@pragma stage 0
+table get_quantile_state_table {
+    actions { get_quantile_state_action; }
+    default_action: get_quantile_state_action;
+}
+
+@pragma stage 0
+table get_option_type_table {
+    actions { get_option_type_action; }
+    default_action: get_option_type_action;
+}
+
+
+@pragma stage 3
+table get_theta_table {
+    actions { get_theta_action; }
+    default_action: get_theta_action;
+}
+
+@pragma stage 1
+table get_beta_table {
+    actions { get_beta_action; }
+    default_action: get_beta_action;
+}
+
+@pragma stage 1
+table get_gamma_table {
+    actions { get_gamma_action; }
+    default_action: get_gamma_action;
+}
+
+@pragma stage 3
+table get_left_bound_table {
+    actions { get_left_bound_action; }
+    default_action: get_left_bound_action;
+}
+
+@pragma stage 3
+table get_right_bound_table {
+    actions { get_right_bound_action; }
+    default_action: get_right_bound_action;
+}
+
+@pragma stage 3
+table get_length_table {
+    actions { get_length_action; }
+    default_action: get_length_action;
+}
+
+@pragma stage 4
+table inc_tail_table {
+    actions { inc_tail_action; }
+    default_action: inc_tail_action;
+}
+
+@pragma stage 4
+table inc_tail_2_table {
+    actions { inc_tail_action; }
+    default_action: inc_tail_action;
+}
+
+@pragma stage 5
+table inc_item_num_table {
+    actions { inc_item_num_action; }
+    default_action: inc_item_num_action;
+}
+
+@pragma stage 5
+table inc_item_num_2_table {
+    actions { inc_item_num_action; }
+    default_action: inc_item_num_action;
+}
+
+@pragma stage 6
+table put_into_array_table {
+    actions { put_into_array_action; }
+    default_action: put_into_array_action;
+}
+
+@pragma stage 10
+table mark_to_resubmit_1_table {
+    actions { mark_to_resubmit_1_action; }
+    default_action: mark_to_resubmit_1_action;
+}
+
+table resubmit_1_table {
+    actions { resubmit_1_action; }
+    default_action: resubmit_1_action;
+}
+
+@pragma stage 0
+table set_array_to_operate_table {
+    actions { set_array_to_operate_action; }
+    default_action: set_array_to_operate_action;
+}
+
+@pragma stage 0
+table set_quantile_state_table {
+    actions { set_quantile_state_action; }
+    default_action: set_quantile_state_action;
+}
+
+@pragma stage 0
+table set_option_type_table {
+    actions { set_option_type_action; }
+    default_action: set_option_type_action;
+}
+
+@pragma stage 4
+table inc_filter_index_table {
+    actions { inc_filter_index_action; }
+    default_action: inc_filter_index_action;
+}
+
+@pragma stage 6
+table fetch_item_table {
+    actions { fetch_item_action; }
+    default_action: fetch_item_action;
+}
+
+@pragma stage 7
+table filter_beta_table {
+    actions { filter_beta_action; }
+    default_action: filter_beta_action;
+}
+
+@pragma stage 9
+table filter_gamma_table {
+    actions { filter_gamma_action; }
+    default_action: filter_gamma_action;
+}
+
+@pragma stage 10
+table mark_to_resubmit_2_table {
+    actions { mark_to_resubmit_2_action; }
+    default_action: mark_to_resubmit_2_action;
+}
+
+@pragma stage 3
+table set_theta_table {
+    actions { set_theta_action; }
+    default_action: set_theta_action;
+}
+
+@pragma stage 1
+table set_beta_ing_table {
+    actions { set_beta_ing_action; }
+    default_action: set_beta_ing_action;
+}
+
+@pragma stage 1
+table set_gamma_ing_table {
+    actions { set_gamma_ing_action; }
+    default_action: set_gamma_ing_action;
+}
+
+@pragma stage 4
+table inc_delete_index_table {
+    actions { inc_delete_index_action; }
+    default_action: inc_delete_index_action;
+}
+
+@pragma stage 6
+table fetch_item_2_table {
+    actions { fetch_item_2_action; }
+    default_action: fetch_item_2_action;
+}
+
+@pragma stage 7
+table mark_index_beta_table {
+    actions { mark_index_beta_action; }
+    default_action: mark_index_beta_action;
+}
+
+@pragma stage 7
+table get_index_beta_table {
+    actions { get_index_beta_action; }
+    default_action: get_index_beta_action;
+}
+
+@pragma stage 7
+table mark_index_gamma_table {
+    actions { mark_index_gamma_action; }
+    default_action: mark_index_gamma_action;
+}
+
+@pragma stage 7
+table get_index_gamma_table {
+    actions { get_index_gamma_action; }
+    default_action: get_index_gamma_action;
+}
+
+@pragma stage 10
+table mark_to_resubmit_3_table {
+    actions { mark_to_resubmit_3_action; }
+    default_action: mark_to_resubmit_3_action;
+}
+
+@pragma stage 8
+table get_max_table {
+    actions { get_max_action; }
+    default_action: get_max_action;
+}
+
+@pragma stage 8
+table get_min_table {
+    actions { get_min_action; }
+    default_action: get_min_action;
+}
+
+@pragma stage 2
+table set_index_beta_ing_table {
+    actions { set_index_beta_ing_action; }
+    default_action: set_index_beta_ing_action;
+}
+
+@pragma stage 2
+table set_index_gamma_ing_table {
+    actions { set_index_gamma_ing_action; }
+    default_action: set_index_gamma_ing_action;
+}
+
+@pragma stage 2
+table get_index_beta_ing_table {
+    actions { get_index_beta_ing_action; }
+    default_action: get_index_beta_ing_action;
+}
+
+@pragma stage 2
+table get_index_gamma_ing_table {
+    actions { get_index_gamma_ing_action; }
+    default_action: get_index_gamma_ing_action;
+}
+
+@pragma stage 1
+table set_to_delete_num_table {
+    actions { set_to_delete_num_action; }
+    default_action: set_to_delete_num_action;
+}
+
+@pragma stage 1
+table set_to_delete_num_1_table {
+    actions { set_to_delete_num_action; }
+    default_action: set_to_delete_num_action;
+}
+
+@pragma stage 1
+table set_to_delete_num_2_table {
+    actions { set_to_delete_num_action; }
+    default_action: set_to_delete_num_action;
+}
+
+@pragma stage 1
+table dec_to_delete_num_table {
+    actions { dec_to_delete_num_action; }
+    default_action: dec_to_delete_num_action;
+}
+
+@pragma stage 5
+table inc_head_table {
+    actions { inc_head_action; }
+    default_action: inc_head_action;
+}
+
+@pragma stage 6
+table get_head_value_table {
+    actions { get_head_value_action; }
+    default_action: get_head_value_action;
+}
+
+@pragma stage 6
+table swap_value_beta_table {
+    actions { swap_value_beta_action; }
+    default_action: swap_value_beta_action;
+}
+
+@pragma stage 6
+table swap_value_gamma_table {
+    actions { swap_value_gamma_action; }
+    default_action: swap_value_gamma_action;
+}
+
+@pragma stage 10
+table mark_to_resubmit_4_table {
+    actions { mark_to_resubmit_4_action; }
+    default_action: mark_to_resubmit_4_action;
+}
+
+@pragma stage 10
+table mark_to_resubmit_5_table {
+    actions { mark_to_resubmit_5_action; }
+    default_action: mark_to_resubmit_5_action;
+}
+
+table put_value_to_theta_table {
+    actions { put_value_to_theta_action; }
+    default_action: put_value_to_theta_action;
+}
+
+table put_value_to_theta_2_table {
+    actions { put_value_to_theta_action; }
+    default_action: put_value_to_theta_action;
+}
+
+@pragma stage 2
+table inc_meta_array_to_operate_table {
+    actions { inc_meta_array_to_operate_action; }
+    default_action: inc_meta_array_to_operate_action;
+}
+
+@pragma stage 5
+table pick_beta_table {
+    actions { pick_beta_action; }
+    default_action: pick_beta_action;
+}
+
+@pragma stage 5
+table pick_gamma_table {
+    actions { pick_gamma_action; }
+    default_action: pick_gamma_action;
+}
+
+@pragma stage 6
+table push_value_table {
+    actions { push_value_action; }
+    default_action: push_value_action;
+}
+
+@pragma stage 10
+table mark_to_resubmit_6_table {
+    actions { mark_to_resubmit_6_action; }
+    default_action: mark_to_resubmit_6_action;
+}
+
+@pragma stage 10
+table mark_to_resubmit_7_table {
+    actions { mark_to_resubmit_7_action; }
+    default_action: mark_to_resubmit_7_action;
+}
+
+// inc_tail 
+table inc_tail_read_table {
+    actions { inc_tail_read_action; }
+    default_action: inc_tail_read_action;
+}
+
+table inc_tail_left_bound_table {
+    actions { inc_tail_left_bound_action; }
+    default_action: inc_tail_left_bound_action;
+}
+
+table inc_tail_plus_table {
+    actions { inc_tail_plus_action; }
+    default_action: inc_tail_plus_action;
+}
+
+table inc_tail_write_table {
+    actions { inc_tail_write_action; }
+    default_action: inc_tail_write_action;
+}
+
+// inc_tail_2 
+table inc_tail_2_read_table {
+    actions { inc_tail_read_action; }
+    default_action: inc_tail_read_action;
+}
+
+table inc_tail_2_left_bound_table {
+    actions { inc_tail_left_bound_action; }
+    default_action: inc_tail_left_bound_action;
+}
+
+table inc_tail_2_plus_table {
+    actions { inc_tail_plus_action; }
+    default_action: inc_tail_plus_action;
+}
+
+table inc_tail_2_write_table {
+    actions { inc_tail_write_action; }
+    default_action: inc_tail_write_action;
+}
+
+// inc_item_num 
+table inc_item_num_read_table {
+    actions { inc_item_num_read_action; }
+    default_action: inc_item_num_read_action;
+}
+
+table inc_item_num_plus_table {
+    actions { inc_item_num_plus_action; }
+    default_action: inc_item_num_plus_action;
+}
+
+table inc_item_num_write_table {
+    actions { inc_item_num_write_action; }
+    default_action: inc_item_num_write_action;
+}
+
+// inc_filter_index
+table inc_filter_index_read_table {
+    actions { inc_filter_index_read_action; }
+    default_action: inc_filter_index_read_action;
+}
+
+table inc_filter_index_left_bound_table {
+    actions { inc_filter_index_left_bound_action; }
+    default_action: inc_filter_index_left_bound_action;
+}
+
+table inc_filter_index_plus_table {
+    actions { inc_filter_index_plus_action; }
+    default_action: inc_filter_index_plus_action;
+}
+
+table inc_filter_index_write_table {
+    actions { inc_filter_index_write_action; }
+    default_action: inc_filter_index_write_action;
+}
+
+// fetch_item 
+table fetch_item_read_table {
+    actions { fetch_item_read_action; }
+    default_action: fetch_item_read_action;
+}
+
+table fetch_item_assign_value_table {
+    actions { fetch_item_assign_value_action; }
+    default_action: fetch_item_assign_value_action;
+}
+
+table fetch_item_2_assign_value_table {
+    actions { fetch_item_assign_value_action; }
+    default_action: fetch_item_assign_value_action;
+}
+
+table fetch_item_2_read_table {
+    actions { fetch_item_2_read_action; }
+    default_action: fetch_item_2_read_action;
+}
+
+// filter_beta
+table filter_beta_read_table {
+    actions { filter_beta_read_action; }
+    default_action: filter_beta_read_action;
+}
+
+table filter_beta_write_table {
+    actions { filter_beta_write_action; }
+    default_action: filter_beta_write_action;
+}
+
+// filter_gamma
+table filter_gamma_read_table {
+    actions { filter_gamma_read_action; }
+    default_action: filter_gamma_read_action;
+}
+
+table filter_gamma_assign_value_table {
+    actions { filter_gamma_assign_value_action; }
+    default_action: filter_gamma_assign_value_action;
+}
+
+table filter_gamma_write_table {
+    actions { filter_gamma_write_action; }
+    default_action: filter_gamma_write_action;
+}
+
+// inc_delete_index
+table inc_delete_index_read_table {
+    actions { inc_delete_index_read_action; }
+    default_action: inc_delete_index_read_action;
+}
+
+table inc_delete_index_left_bound_table {
+    actions { inc_delete_index_left_bound_action; }
+    default_action: inc_delete_index_left_bound_action;
+}
+
+table inc_delete_index_plus_table {
+    actions { inc_delete_index_plus_action; }
+    default_action: inc_delete_index_plus_action;
+}
+
+table inc_delete_index_write_table {
+    actions { inc_delete_index_write_action; }
+    default_action: inc_delete_index_write_action;
+}
+
+// dec_to_delete_num
+table dec_to_delete_num_read_table {
+    actions { dec_to_delete_num_read_action; }
+    default_action: dec_to_delete_num_read_action;
+}
+
+table dec_to_delete_num_minus_table {
+    actions { dec_to_delete_num_minus_action; }
+    default_action: dec_to_delete_num_minus_action;
+}
+
+table dec_to_delete_num_unchanged_table {
+    actions { dec_to_delete_num_unchanged_action; }
+    default_action: dec_to_delete_num_unchanged_action;
+}
+
+table dec_to_delete_num_write_table {
+    actions { dec_to_delete_num_write_action; }
+    default_action: dec_to_delete_num_write_action;
+}
+
+// inc_head
+table inc_head_read_table {
+    actions { inc_head_read_action; }
+    default_action: inc_head_read_action;
+}
+
+table inc_head_left_bound_table {
+    actions { inc_head_left_bound_action; }
+    default_action: inc_head_left_bound_action;
+}
+
+table inc_head_plus_table {
+    actions { inc_head_plus_action; }
+    default_action: inc_head_plus_action;
+}
+
+table inc_head_write_table {
+    actions { inc_head_write_action; }
+    default_action: inc_head_write_action;
+}
+# 7 "qpipe.p4" 2
+
+// #### metas
+header_type meta_t {
+    fields {
+        recirc_flag: 16;
+        sample: 32;
+        sample_01: 1;
+
+        recirced: 1;
+
+        head: 32;
+        head_n: 32;
+        tail: 32;
+        tail_n: 32;
+        len: 32;
+        item_num: 32;
+        left_bound: 32;
+        right_bound: 32;
+        array_to_operate: 32;
+        busy: 32;
+        option_type: 32;
+
+        theta: 32;
+        beta: 32;
+        gamma: 32;
+        filter_index: 32;
+        filter_index_n: 32;
+        filter_item: 32;
+        delete_index: 32;
+        delete_index_n: 32;
+        filter_item_2: 32;
+        old_beta: 32;
+        max_v: 32;
+        index_beta: 32;
+        index_gamma: 32;
+        to_delete_num: 32;
+        to_delete_num_n: 32;
+        head_v: 32;
+        coin: 32;
+        picked_value: 32;
+        value: 32;
+        a_value: 32;
+    }
+}
+metadata meta_t meta;
+
+field_list rec_fl {
+    recirculate_hdr;
+}
+
+// #### registers
+register left_bound_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register right_bound_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register length_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register head_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register tail_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register item_num_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register theta_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register beta_ing_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register beta_exg_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register gamma_ing_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register gamma_exg_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register index_beta_ing_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register index_beta_exg_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register index_gamma_ing_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register index_gamma_exg_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register to_delete_num_register {
+    width: 32;
+    instance_count: 1;
+}
+
+
+
+register a_register {
+    width: 32;
+    instance_count: 10000;
+}
+
+register filter_index_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register delete_index_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register minimum_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register second_minimnum_register {
+    width: 32;
+    instance_count: 10;
+}
+
+register array_to_operate_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register quantile_state_register {
+    width: 32;
+    instance_count: 1;
+}
+
+register option_type_register {
+    width: 32;
+    instance_count: 1;
+}
+
+
+
+control get_basic_info {
+    // ** stage 0
+    // ** get the current option_type
+    apply(get_pkt_info_table);
+    apply(get_option_type_table);
+
+    // ** get the target array (to operate)
+    apply(get_array_to_operate_table);
+    // ** get the state of the quantile (busy?)
+    apply(get_quantile_state_table);
+
+    // ** stage 1
+    // apply(dec_to_delete_num_table);
+    dec_to_delete_num();
+
+    // ** get beta
+    apply(get_beta_table);
+
+    // ** get gamma
+    apply(get_gamma_table);
+
+    // ** stage 2
+    // TODO: if (meta.sample != 1)
+    if (meta.option_type == 3) {
+        if (meta.to_delete_num == 0) {
+            apply(inc_meta_array_to_operate_table);
+        }
+    }
+
+    // ** get_beta_index
+    apply(get_index_beta_ing_table);
+
+    // ** get_gamma_index
+    apply(get_index_gamma_ing_table);
+
+    // ** stage 3
+    // ** get queue_infos
+    apply(get_left_bound_table);
+    apply(get_right_bound_table);
+
+    apply(get_length_table);
+
+    // ** get theta
+    apply(get_theta_table);
+
+}
+
+control recirculation_1 {
+    // ** stage 0
+    apply(set_option_type_table);
+
+    apply(set_array_to_operate_table);
+
+    apply(set_quantile_state_table);
+
+
+    // ** stage 1
+    apply(set_to_delete_num_table);
+
+    // ** stage 1
+    apply(set_beta_ing_table);
+    apply(set_gamma_ing_table);
+
+    // ** stage 2
+    apply(set_index_beta_ing_table);
+    apply(set_index_gamma_ing_table);
+
+    // ** stage 3
+
+
+    apply(set_theta_table);
+}
+
+control recirculation_2 {
+    // ** stage 0
+    apply(set_option_type_table);
+
+    apply(set_array_to_operate_table);
+
+    apply(set_quantile_state_table);
+
+
+    // ** stage 1
+    apply(set_to_delete_num_table);
+
+    // ** stage 1
+    apply(set_beta_ing_table);
+    apply(set_gamma_ing_table);
+
+    // ** stage 2
+    apply(set_index_beta_ing_table);
+    apply(set_index_gamma_ing_table);
+
+    // ** stage 3
+
+
+    apply(set_theta_table);
+}
+
+control recirculation_3 {
+    // ** stage 0
+    apply(set_option_type_table);
+
+    apply(set_array_to_operate_table);
+
+    apply(set_quantile_state_table);
+
+
+    // ** stage 1
+    apply(set_to_delete_num_table);
+
+    // ** stage 1
+    apply(set_beta_ing_table);
+    apply(set_gamma_ing_table);
+
+    // ** stage 2
+    apply(set_index_beta_ing_table);
+    apply(set_index_gamma_ing_table);
+
+    // ** stage 3
+
+
+    apply(set_theta_table);
+}
+
+control recirculation_4 {
+    apply(set_to_delete_num_1_table);
+    apply(put_value_to_theta_table);
+    apply(swap_value_beta_table);
+
+}
+
+control recirculation_5 {
+    // apply(put_value_to_theta_table);
+    apply(set_to_delete_num_2_table);
+    apply(put_value_to_theta_2_table);
+    apply(swap_value_gamma_table);
+
+}
+
+control recirculation_6 {
+    // ** stage 0
+    apply(set_option_type_table);
+
+    apply(set_array_to_operate_table);
+
+    apply(set_quantile_state_table);
+
+
+    // ** stage 1
+    apply(set_to_delete_num_table);
+
+    // ** stage 1
+    apply(set_beta_ing_table);
+    apply(set_gamma_ing_table);
+
+    // ** stage 2
+    apply(set_index_beta_ing_table);
+    apply(set_index_gamma_ing_table);
+
+    // ** stage 3
+
+
+    apply(set_theta_table);
+}
+
+control recirculation_7 {
+    // ** stage 0
+    apply(set_option_type_table);
+
+    apply(set_array_to_operate_table);
+
+    apply(set_quantile_state_table);
+
+
+    // ** stage 1
+    apply(set_to_delete_num_table);
+
+    // ** stage 1
+    apply(set_beta_ing_table);
+    apply(set_gamma_ing_table);
+
+    // ** stage 2
+    apply(set_index_beta_ing_table);
+    apply(set_index_gamma_ing_table);
+
+    // ** stage 3
+
+
+    apply(set_theta_table);
+}
+
+control inc_tail {
+    apply(inc_tail_read_table);
+    if (meta.tail == meta.right_bound) {
+        apply(inc_tail_left_bound_table);
+    }
+    else {
+        apply(inc_tail_plus_table);
+    }
+    apply(inc_tail_write_table);
+}
+// ** inc_tail_2
+
+control inc_tail_2 {
+    apply(inc_tail_2_read_table);
+    if (meta.tail == meta.right_bound) {
+        apply(inc_tail_2_left_bound_table);
+    }
+    else {
+        apply(inc_tail_2_plus_table);
+    }
+    apply(inc_tail_2_write_table);
+}
+
+control inc_item_num {
+    apply(inc_item_num_read_table);
+    if (meta.item_num != meta.len) {
+        apply(inc_item_num_plus_table);
+    }
+    apply(inc_item_num_write_table);
+}
+
+control inc_filter_index {
+    apply(inc_filter_index_read_table);
+    if (meta.filter_index == meta.right_bound) {
+        apply(inc_filter_index_left_bound_table);
+    }
+    else {
+        apply(inc_filter_index_plus_table);
+    }
+    apply(inc_filter_index_write_table);
+}
+
+control fetch_item {
+    apply(fetch_item_read_table);
+    if (meta.a_value > meta.theta) {
+        apply(fetch_item_assign_value_table);
+    }
+}
+
+control fetch_item_2 {
+    apply(fetch_item_2_read_table);
+    if (meta.a_value > meta.theta) {
+        apply(fetch_item_2_assign_value_table);
+    }
+}
+
+control filter_beta {
+    apply(filter_beta_read_table);
+    if ((meta.old_beta > meta.filter_item) && (meta.filter_item != 0)) {
+        apply(filter_beta_write_table);
+    }
+}
+
+control filter_gamma {
+    apply(filter_gamma_read_table);
+    if ((meta.gamma > meta.max_v) && (meta.filter_item != 0)) {
+        apply(filter_gamma_assign_value_table);
+    }
+    apply(filter_gamma_write_table);
+}
+
+control inc_delete_index {
+    apply(inc_delete_index_read_table);
+    if (meta.delete_index == meta.right_bound) {
+        apply(inc_delete_index_left_bound_table);
+    }
+    else {
+        apply(inc_delete_index_plus_table);
+    }
+    apply(inc_delete_index_write_table);
+}
+
+control dec_to_delete_num {
+    apply(dec_to_delete_num_read_table);
+    if ((meta.to_delete_num > 0) && (meta.option_type == 3)) {
+        apply(dec_to_delete_num_minus_table);
+    }
+    else {
+        apply(dec_to_delete_num_unchanged_table);
+    }
+    apply(dec_to_delete_num_write_table);
+}
+
+control inc_head {
+    apply(inc_head_read_table);
+    if (meta.head == meta.right_bound) {
+        apply(inc_head_left_bound_table);
+    }
+    else {
+        apply(inc_head_plus_table);
+    }
+    apply(inc_head_write_table);
+}
+
+control ingress {
+    if (valid(pq_hdr)) {
+        if (pq_hdr.recirc_flag == 0) {
+            // ** sample pkt
+            apply(sample_table);
+            apply(sample_01_table);
+
+            get_basic_info();
+            if (meta.sample == 1) {
+                // ** if the array is not full, then push the sampled value into array
+
+                if (meta.busy == 0) {
+                    // ** stage 4
+                    // ** put the value into the array
+
+                    // apply(inc_tail_table);
+                    inc_tail();
+
+                    // ** stage 5
+                    apply(inc_item_num_table);
+                    inc_item_num();
+
+                    // ** stage 6
+                    apply(put_into_array_table);
+
+                    if (meta.item_num == meta.len) {
+                        // ** stage 10
+                        apply(mark_to_resubmit_1_table);
+                    }
+                }
+            }
+            else if (meta.sample != 1) {
+                if (meta.option_type == 1) {
+                    // ** stage 4
+                    // ** filter minimum
+                    // apply(inc_filter_index_table);
+                    inc_filter_index();
+
+                    // ** stage 6
+                    // apply(fetch_item_table);
+                    fetch_item();
+
+                    // ** stage 7
+                    // apply(filter_beta_table);
+                    filter_beta();
+
+                    if (meta.filter_item != 0) {
+                        // ** stage 8
+                        // meta.max = max(meta.filter_item, meta.old_beta)
+                        apply(get_max_table);
+                        // meta.beta = min(meta.filter_item, meta.old_beta)
+                        apply(get_min_table);
+                    }
+                    // ** stage 9
+                    // apply(filter_gamma_table);
+                    filter_gamma();
+
+                    if (meta.filter_index == meta.tail) {
+                        // ** stage 10
+                        apply(mark_to_resubmit_2_table);
+                        // apply(resubmit_1_table);
+                    }
+                }
+                else if (meta.option_type == 2) {
+                    // ** stage 4
+                    // ** find the item to delete 
+                    // apply(inc_delete_index_table);
+                    inc_delete_index();
+
+                    // ** stage 6
+                    // apply(fetch_item_2_table);
+                    fetch_item_2();
+
+                    if (meta.beta == meta.filter_item) {
+                        // ** stage 7
+                        apply(mark_index_beta_table);
+                        // ** stage 7
+                        apply(get_index_gamma_table);
+                    }
+                    else {
+                        // ** stage 7
+                        apply(get_index_beta_table);
+                        // ** stage 7
+                        if (meta.gamma == meta.filter_item) {
+                            apply(mark_index_gamma_table);
+                        }
+                        else {
+                            apply(get_index_gamma_table);
+                        }
+                    }
+
+                    if (meta.delete_index == meta.tail) {
+                        // ** stage 10
+                        apply(mark_to_resubmit_3_table);
+                    }
+                }
+                else if (meta.option_type == 3) {
+
+                    if (meta.to_delete_num == 0) {
+                        // // apply(inc_array_to_operate_table);
+
+                        // ** stage 4
+                        // apply(inc_tail_2_table);
+                        inc_tail_2();
+
+                        // ** stage 5
+                        if (meta.sample_01 == 0) {
+                            apply(pick_beta_table);
+                        }
+                        else {
+                            apply(pick_gamma_table);
+                        }
+                        apply(inc_item_num_2_table);
+
+                        // ** stage 6
+                        apply(push_value_table);
+
+                        if (meta.item_num == meta.len) {
+                            apply(mark_to_resubmit_6_table);
+                        }
+                        else {
+                            apply(mark_to_resubmit_7_table);
+                        }
+
+                    }
+                    else {
+                        // ** stage 5
+                        // apply(inc_head_table);
+                        inc_head();
+
+                        // ** stage 6
+                        apply(get_head_value_table);
+                        if (meta.to_delete_num == 2) {
+                            // ** stage 10
+                            apply(mark_to_resubmit_4_table);
+                        }
+                        else if (meta.to_delete_num == 1) {
+                            // ** stage 10
+                            apply(mark_to_resubmit_5_table);
+                        }
+                    }
+                }
+            }
+            apply(resubmit_1_table);
+        }
+        else if (pq_hdr.recirc_flag == 1) {
+            recirculation_1();
+        }
+        else if (pq_hdr.recirc_flag == 2) {
+            recirculation_1();
+        }
+        else if (pq_hdr.recirc_flag == 3) {
+            recirculation_1();
+        }
+        else if (pq_hdr.recirc_flag == 4) {
+            recirculation_4();
+        }
+        else if (pq_hdr.recirc_flag == 5) {
+            recirculation_5();
+        }
+        else if (pq_hdr.recirc_flag == 6) {
+            recirculation_1();
+        }
+        else if (pq_hdr.recirc_flag == 7) {
+            recirculation_1();
+        }
+    }
+
+}
+
+control egress {
+
+}

@@ -4,17 +4,17 @@
   "bmv2_json": "build/qpipe.json",
   "table_entries": [
     {
-      "table": "ipv4_route",
+      "table": "ingress.ipv4_route",
       "default_action": true,
-      "action_name": "_drop",
+      "action_name": "ingress.drop",
       "action_params": { }
     },
     {
-      "table": "ipv4_route",
+      "table": "ingress.ipv4_route",
       "match": {
-        "ipv4.dstAddr": ["10.0.1.1", 32]
+        "hdr.ipv4.dstAddr": ["10.0.1.1", 32]
       },
-      "action_name": "set_egress",
+      "action_name": "ingress.set_egress",
       "action_params": {
         "egress_spec": 1,
         "smac": "08:00:00:00:02:22",
@@ -22,11 +22,11 @@
       }
     },
     {
-      "table": "ipv4_route",
+      "table": "ingress.ipv4_route",
       "match": {
-        "ipv4.dstAddr": ["10.0.2.2", 32]
+        "hdr.ipv4.dstAddr": ["10.0.2.2", 32]
       },
-      "action_name": "set_egress",
+      "action_name": "ingress.set_egress",
       "action_params": {
         "egress_spec": 2,
         "smac": "08:00:00:00:01:11",

@@ -1,0 +1,10 @@
+action pass_gamma_to_next_stage_action() {
+    meta.filter_item_2 = meta.gamma;
+}
+
+action set_gamma_meta_action() {
+    meta.gamma = meta.filter_item;
+}
+
+action pass_filtered_to_next_stage_action() {
+    meta.filter_item_2 = meta.filter_item;

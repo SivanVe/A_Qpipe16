@@ -158,7 +158,7 @@ control get_basic_info(inout headers hdr,
     @pragma stage 1
     action get_beta_action() {
     //    register_read(meta.beta, beta_ing_register, 0);
-          beta_ing_register.read(meta.meta.beta, (bit<32>)32w0);
+          beta_ing_register.read(meta.meta.beta, 0);
     }
     table get_beta_table {
         actions = {
@@ -170,7 +170,7 @@ control get_basic_info(inout headers hdr,
     @pragma stage 1
     action get_gamma_action() {
     //    register_read(meta.gamma, gamma_ing_register, 0);
-          gamma_ing_register.read(meta.meta.gamma, (bit<32>)32w0);
+          gamma_ing_register.read(meta.meta.gamma, 0);
     }
     table get_gamma_table {
         actions = {
@@ -193,7 +193,7 @@ control get_basic_info(inout headers hdr,
     @pragma stage 2
     action get_index_beta_ing_action() {
     //    register_read(meta.index_beta, index_beta_ing_register, 0);
-          index_beta_ing_register.read(meta.meta.index_beta, (bit<32>)32w0);
+          index_beta_ing_register.read(meta.meta.index_beta, 0);
     }
     table get_index_beta_ing_table {
         actions = {
@@ -205,7 +205,7 @@ control get_basic_info(inout headers hdr,
     @pragma stage 2
     action get_index_gamma_ing_action() {
     //    register_read(meta.index_gamma, index_gamma_ing_register, 0);
-          index_gamma_ing_register.read(meta.meta.index_gamma, (bit<32>)32w0);
+          index_gamma_ing_register.read(meta.meta.index_gamma, 0);
     }
     table get_index_gamma_ing_table {
         actions = {
@@ -284,7 +284,7 @@ control get_basic_info(inout headers hdr,
         get_gamma_table.apply();
 
         // ** stage 2
-        // TODO: if (meta.sample != 1)
+        // TODO: if (meta.meta.sample != 1)
         if (meta.meta.option_type == EXE_DELETE_OPTION) {
             if (meta.meta.to_delete_num == 0) {
                 inc_meta_array_to_operate_table.apply();
@@ -1082,66 +1082,6 @@ control inc_delete_index (inout headers hdr,
         inc_delete_index_write_table.apply();
     }
 }
-/*
-control dec_to_delete_num (inout headers hdr,
-                           inout metadata meta,
-                           inout standard_metadata_t standard_metadata) {
-
-    // dec_to_delete_num
-    action dec_to_delete_num_read_action() {
-        //register_read(meta.to_delete_num, to_delete_num_register, 0);
-        to_delete_num_register.read(meta.meta.to_delete_num, (bit<32>)32w0);
-    }
-    table dec_to_delete_num_read_table {
-        actions = {
-            dec_to_delete_num_read_action;
-        }
-        default_action = dec_to_delete_num_read_action();
-    }
-
-    action dec_to_delete_num_minus_action() {
-        meta.meta.to_delete_num_n = meta.meta.to_delete_num - 1;
-    }
-    table dec_to_delete_num_minus_table {
-        actions = {
-            dec_to_delete_num_minus_action;
-        }
-        default_action = dec_to_delete_num_minus_action();
-    }
-
-    action dec_to_delete_num_unchanged_action() {
-        meta.meta.to_delete_num_n = meta.meta.to_delete_num;
-    }
-    table dec_to_delete_num_unchanged_table {
-        actions = {
-            dec_to_delete_num_unchanged_action;
-        }
-        default_action = dec_to_delete_num_unchanged_action();
-    }
-
-    action dec_to_delete_num_write_action() {
-    //    register_write(to_delete_num_register, 0, meta.meta.to_delete_num_n);
-          to_delete_num_register.write((bit<32>)32w0, (bit<32>)meta.meta.to_delete_num_n);
-    }
-    table dec_to_delete_num_write_table {
-        actions = {
-            dec_to_delete_num_write_action;
-        }
-        default_action = dec_to_delete_num_write_action();
-    }
-
-    apply {
-        dec_to_delete_num_read_table.apply();
-        if ((meta.meta.to_delete_num > 0) && (meta.meta.option_type == EXE_DELETE_OPTION)) {
-            dec_to_delete_num_minus_table.apply();
-        }
-        else {
-            dec_to_delete_num_unchanged_table.apply();
-        }
-        dec_to_delete_num_write_table.apply();
-    }
-}
-*/
 
 control inc_head (inout headers hdr,
                   inout metadata meta,
@@ -1244,7 +1184,7 @@ control ingress (inout headers hdr,
     }
 
     action sample_01_action() {
-        random(meta.meta.sample_01, 0, 1);  //1w1 instead of bit<1>
+        random(meta.meta.sample_01, 0, 1);
     }
     table sample_01_table {
         actions = {
@@ -1313,7 +1253,7 @@ control ingress (inout headers hdr,
     }
 
     @pragma stage 4
-    action inc_filter_index_action() {
+    action inc_filter_index_action() { // FIXME: why is the action empty
     }
     table inc_filter_index_table {
         actions = {
@@ -1375,7 +1315,7 @@ control ingress (inout headers hdr,
 
     @pragma stage 10
     action mark_to_resubmit_2_action() {
-        hdr.pq_hdr.recirc_flag= 2;
+        hdr.pq_hdr.recirc_flag = 2;
         hdr.recirculate_hdr.setValid();
         // ** recirculate_hdr_t.busy = 1;
         hdr.recirculate_hdr.busy= 1;
@@ -1713,8 +1653,6 @@ control ingress (inout headers hdr,
                     if (meta.meta.busy == 0) {
                         // ** stage 4
                         // ** put the value into the array
-
-                        // inc_tail_table.apply();
                         inc_tail.apply(hdr, meta, standard_metadata);
 
                         // ** stage 5
@@ -1734,15 +1672,12 @@ control ingress (inout headers hdr,
                     if (meta.meta.option_type == FILTER_OPTION) {
                         // ** stage 4
                         // ** filter minimum
-                        // inc_filter_index_table.apply();
-                        inc_filter_index.apply(hdr, meta, standard_metadata);
+                        inc_filter_index.apply(hdr, meta, standard_metadata); // FIXME: why is the action empty
 
                         // ** stage 6
-                        // fetch_item_table.apply();
                         fetch_item.apply(hdr, meta, standard_metadata);
 
                         // ** stage 7
-                        // filter_beta_table.apply();
                         filter_beta.apply(hdr, meta, standard_metadata);
 
                         if (meta.meta.filter_item != 0) {
@@ -1753,7 +1688,6 @@ control ingress (inout headers hdr,
                             get_min_table.apply();
                         }
                         // ** stage 9
-                        // filter_gamma_table.apply();
                         filter_gamma.apply(hdr, meta, standard_metadata);
 
                         if (meta.meta.filter_index == meta.meta.tail) {
@@ -1765,11 +1699,9 @@ control ingress (inout headers hdr,
                     else if (meta.meta.option_type == PRE_DELETE_OPTION) {
                         // ** stage 4
                         // ** find the item to delete
-                        // inc_delete_index_table.apply();
                         inc_delete_index.apply(hdr, meta, standard_metadata);
 
                         // ** stage 6
-                        // fetch_item_2_table.apply();
                         fetch_item_2.apply(hdr, meta, standard_metadata);
 
                         if (meta.meta.beta == meta.meta.filter_item) {
@@ -1798,7 +1730,7 @@ control ingress (inout headers hdr,
                     else if (meta.meta.option_type == EXE_DELETE_OPTION) {
 
                         if (meta.meta.to_delete_num == 0) {
-                            // // inc_array_to_operate_table.apply();
+                            // inc_array_to_operate_table.apply();
 
                             // ** stage 4
                             // inc_tail_2_table.apply();

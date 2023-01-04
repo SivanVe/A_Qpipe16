@@ -2,8 +2,11 @@
 
 import sys
 
-from scapy.all import sniff
+from scapy.all import sniff, Packet, ByteField, IntField, ShortField
 
+class PQ(Packet):
+    name = "PQ"
+    fields_desc = [ ByteField("op", 0), ByteField("priority", 0), IntField("value", 11), ShortField("recirc_flag", 0) ]
 
 def handle_pkt(pkt):
     print("got a packet")

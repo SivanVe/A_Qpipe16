@@ -1810,7 +1810,7 @@ control egress(inout headers hdr,
                inout standard_metadata_t standard_metadata) {
     apply {
       if (meta.meta.recirced == 1) {
-          recirculate_preserving_field_list(0);
+          recirculate_preserving_field_list(rec_fl);
       }
     }
 }

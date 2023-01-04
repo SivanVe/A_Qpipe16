@@ -8,7 +8,7 @@ from scapy.all import IP, TCP, UDP, Ether, get_if_hwaddr, get_if_list, sendp, Pa
 
 class PQ(Packet):
     name = "PQ"
-    field_desc = [ ByteField("op", 0), ByteField("priority", 0), IntField("value", 11), ShortField("recirc_flag", 0) ]
+    fields_desc = [ ByteField("op", 0), ByteField("priority", 0), IntField("value", 11), ShortField("recirc_flag", 0) ]
 
 def get_if():
     iface = None
@@ -34,8 +34,8 @@ def main():
         addr = socket.gethostbyname(args.des)
         iface = get_if()
         if args.p == 'UDP':
-            pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234) / PQ() / args.m
-            pkt.show2()
+            pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234)/ PQ(op=0, priority=0, value=11, recirc_flag=0) / args.m
+            pkt.show()
             try:
                 for i in range(int(args.dur)):
                     sendp(pkt, iface=iface)

@@ -28,7 +28,7 @@ register<bit<32>>(ARRAY_LEN_INTOTAL) a_register;
 register<bit<32>>(ARRAY_NUM) filter_index_register;
 register<bit<32>>(ARRAY_NUM) delete_index_register;
 register<bit<32>>(ARRAY_NUM) minimum_register; // UNUSED
-register<bit<32>>(ARRAY_NUM) second_minimnum_register; // UNUSED
+register<bit<32>>(ARRAY_NUM) second_minimum_register; // UNUSED
 register<bit<32>>(1) array_to_operate_register;
 register<bit<32>>(1) quantile_state_register;
 register<bit<32>>(1) option_type_register;
@@ -110,9 +110,8 @@ control get_basic_info(inout headers hdr,
         default_action = get_pkt_info_action();
     }
 
-    @pragma stage 0   // FIXME: what is pragma?
+    @pragma stage 0
     action get_option_type_action() {
-    //    register_read(meta.option_type, option_type_register, 0);
           option_type_register.read(meta.meta.option_type, 0);
     }
     table get_option_type_table {
@@ -124,7 +123,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 0
     action get_array_to_operate_action() {
-    //    register_read(meta.array_to_operate, array_to_operate_register, 0);
           array_to_operate_register.read(meta.meta.array_to_operate, 0);
     }
     table get_array_to_operate_table {
@@ -136,7 +134,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 0
     action get_quantile_state_action() {
-    //    register_read(meta.busy, quantile_state_register, 0);
           quantile_state_register.read(meta.meta.busy, (bit<32>)32w0);
     }
     table get_quantile_state_table {
@@ -169,7 +166,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 1
     action get_gamma_action() {
-    //    register_read(meta.gamma, gamma_ing_register, 0);
           gamma_ing_register.read(meta.meta.gamma, 0);
     }
     table get_gamma_table {
@@ -192,7 +188,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 2
     action get_index_beta_ing_action() {
-    //    register_read(meta.index_beta, index_beta_ing_register, 0);
           index_beta_ing_register.read(meta.meta.index_beta, 0);
     }
     table get_index_beta_ing_table {
@@ -204,7 +199,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 2
     action get_index_gamma_ing_action() {
-    //    register_read(meta.index_gamma, index_gamma_ing_register, 0);
           index_gamma_ing_register.read(meta.meta.index_gamma, 0);
     }
     table get_index_gamma_ing_table {
@@ -216,7 +210,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 3
     action get_left_bound_action() {
-    //    register_read(meta.left_bound, left_bound_register, meta.array_to_operate);
           left_bound_register.read(meta.meta.left_bound, (bit<32>)meta.meta.array_to_operate);
     }
     table get_left_bound_table {
@@ -228,7 +221,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 3
     action get_right_bound_action() {
-    //    register_read(meta.right_bound, right_bound_register, meta.array_to_operate);
           right_bound_register.read(meta.meta.right_bound, (bit<32>)meta.meta.array_to_operate);
     }
     table get_right_bound_table {
@@ -240,7 +232,6 @@ control get_basic_info(inout headers hdr,
 
     @pragma stage 3
     action get_length_action() {
-    //    register_read(meta.len, length_register, meta.array_to_operate);
           length_register.read(meta.meta.len, (bit<32>)meta.meta.array_to_operate);
     }
     table get_length_table {
@@ -314,8 +305,7 @@ control recirculation_1 (inout headers hdr,
                          inout standard_metadata_t standard_metadata) {
     @pragma stage 0
     action set_option_type_action() {
-    //    register_write(option_type_register, 0, recirculate_hdr_t.option_type);
-          option_type_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.option_type);
+          option_type_register.write(0, (bit<32>)hdr.recirculate_hdr.option_type);
     }
     table set_option_type_table {
         actions = {
@@ -326,8 +316,7 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 0
     action set_array_to_operate_action() {
-    //    register_write(array_to_operate_register, 0, recirculate_hdr_t.array_to_operate);
-          array_to_operate_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.array_to_operate);
+          array_to_operate_register.write(0, (bit<32>)hdr.recirculate_hdr.array_to_operate);
     }
     table set_array_to_operate_table {
         actions = {
@@ -338,7 +327,6 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 0
     action set_quantile_state_action() {
-    //    register_write(quantile_state_register, 0, recirculate_hdr_t.busy);
           quantile_state_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.busy);
     }
     table set_quantile_state_table {
@@ -350,8 +338,7 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 1
     action set_to_delete_num_action() {
-    //    register_write(to_delete_num_register, 0, recirculate_hdr_t.to_delete_num);
-          to_delete_num_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
+          to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
     }
     table set_to_delete_num_table {
         actions = {
@@ -362,8 +349,7 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 1
     action set_beta_ing_action() {
-    //    register_write(beta_ing_register, 0, recirculate_hdr_t.beta_ing);
-          beta_ing_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.beta_ing);
+          beta_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.beta_ing);
     }
     table set_beta_ing_table {
         actions = {
@@ -374,8 +360,7 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 1
     action set_gamma_ing_action() {
-    //    register_write(gamma_ing_register, 0, recirculate_hdr_t.gamma_ing);
-          gamma_ing_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.gamma_ing);
+          gamma_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.gamma_ing);
     }
     table set_gamma_ing_table {
         actions = {
@@ -386,8 +371,7 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 2
     action set_index_beta_ing_action() {
-    //    register_write(index_beta_ing_register, 0, recirculate_hdr_t.index_beta_ing);
-          index_beta_ing_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.index_beta_ing);
+          index_beta_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.index_beta_ing);
     }
     table set_index_beta_ing_table {
         actions = {
@@ -398,7 +382,6 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 2
     action set_index_gamma_ing_action() {
-    //    register_write(index_gamma_ing_register, 0, recirculate_hdr_t.index_gamma_ing);
           index_gamma_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.index_gamma_ing);
     }
     table set_index_gamma_ing_table {
@@ -410,7 +393,6 @@ control recirculation_1 (inout headers hdr,
 
     @pragma stage 3
     action set_theta_action() {
-    //    register_write(theta_register, 0, recirculate_hdr_t.theta);
           theta_register.write(0, (bit<32>)hdr.recirculate_hdr.theta);
     }
     table set_theta_table {
@@ -504,8 +486,7 @@ control recirculation_4 (inout headers hdr,
                          inout metadata meta,
                          inout standard_metadata_t standard_metadata) {
     action set_to_delete_num_action() {
-        //register_write(to_delete_num_register, 0, recirculate_hdr_t.to_delete_num);
-        to_delete_num_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
+        to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
     }
     @pragma stage 1
     table set_to_delete_num_1_table {
@@ -527,7 +508,6 @@ control recirculation_4 (inout headers hdr,
 
     @pragma stage 6
     action swap_value_beta_action() {
-        //    register_write(a_register, recirculate_hdr_t.index_beta_ing, meta.value);
         a_register.write((bit<32>)hdr.recirculate_hdr.index_beta_ing, (bit<32>)meta.meta.value);
     }
     table swap_value_beta_table {
@@ -548,8 +528,7 @@ control recirculation_5 (inout headers hdr,
                          inout metadata meta,
                          inout standard_metadata_t standard_metadata) {
     action set_to_delete_num_action() {
-        //register_write(to_delete_num_register, 0, recirculate_hdr_t.to_delete_num);
-        to_delete_num_register.write((bit<32>)32w0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
+        to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
     }
     @pragma stage 1
     table set_to_delete_num_2_table {
@@ -571,7 +550,6 @@ control recirculation_5 (inout headers hdr,
 
     @pragma stage 6
     action swap_value_gamma_action() {
-    //    register_write(a_register, recirculate_hdr_t.index_gamma_ing, meta.value);
         a_register.write((bit<32>)hdr.recirculate_hdr.index_gamma_ing, (bit<32>)meta.meta.value);
     }
     table swap_value_gamma_table {
@@ -652,7 +630,6 @@ control inc_tail (inout headers hdr,
 
     // inc_tail
     action inc_tail_read_action() {
-      //register_read(meta.tail, tail_register, meta.array_to_operate);
         tail_register.read(meta.meta.tail, (bit<32>)meta.meta.array_to_operate);
     }
     table inc_tail_read_table {
@@ -663,7 +640,6 @@ control inc_tail (inout headers hdr,
     }
 
     action inc_tail_left_bound_action() {
-        // meta.tail_n = meta.left_bound
         meta.meta.tail_n = meta.meta.left_bound;
     }
     table inc_tail_left_bound_table {
@@ -686,7 +662,6 @@ control inc_tail (inout headers hdr,
     }
 
     action inc_tail_write_action() {
-    //    register_write(tail_register, meta.array_to_operate, meta.tail_n);
           tail_register.write((bit<32>)meta.meta.array_to_operate, (bit<32>)meta.meta.tail_n);
     }
     table inc_tail_write_table {
@@ -714,7 +689,6 @@ control inc_tail_2 (inout headers hdr,
 
     // inc_tail
     action inc_tail_read_action() {
-        //register_read(meta.tail, tail_register, meta.array_to_operate);
         tail_register.read(meta.meta.tail, (bit<32>)meta.meta.array_to_operate);
     }
     table inc_tail_2_read_table {
@@ -725,7 +699,6 @@ control inc_tail_2 (inout headers hdr,
     }
 
     action inc_tail_left_bound_action() {
-        // meta.tail_n = meta.left_bound
         meta.meta.tail_n = meta.meta.left_bound;
     }
     table inc_tail_2_left_bound_table {
@@ -881,7 +854,6 @@ control fetch_item (inout headers hdr,
 
     //fetch_item
     action fetch_item_read_action() {
-        //    register_read(meta.meta.a_value, a_register, meta.meta.array_to_operate);
         a_register.read(meta.meta.a_value, (bit<32>)meta.meta.array_to_operate);
     }
     table fetch_item_read_table {
@@ -926,7 +898,6 @@ control fetch_item_2 (inout headers hdr,
     }
 
     action fetch_item_2_read_action() {
-    //    register_read(meta.meta.a_value, a_register, meta.meta.delete_index);
           a_register.read(meta.meta.a_value, (bit<32>)meta.meta.delete_index);
     }
     table fetch_item_2_read_table {
@@ -1089,7 +1060,6 @@ control inc_head (inout headers hdr,
 
     // inc_head
     action inc_head_read_action() {
-        //register_read(meta.head, head_register, meta.array_to_operate);
         head_register.read(meta.meta.head, (bit<32>)meta.meta.array_to_operate);
     }
     table inc_head_read_table {
@@ -1120,7 +1090,6 @@ control inc_head (inout headers hdr,
     }
 
     action inc_head_write_action() {
-    //    register_write(head_register, meta.array_to_operate, meta.head_n);
           head_register.write((bit<32>)meta.meta.array_to_operate, (bit<32>)meta.meta.head_n);
     }
     table inc_head_write_table {
@@ -1174,7 +1143,8 @@ control ingress (inout headers hdr,
     }
 
     action sample_action() {
-        random(meta.meta.sample, LOWER_BOUND, UPPER_BOUND); //lower-(bit<32>)0, upper-32w255
+      //  random(meta.meta.sample, LOWER_BOUND, UPPER_BOUND); // FIXME
+        random(meta.meta.sample, LOWER_BOUND, 3); // FIXME
     }
     table sample_table {
         actions = {
@@ -1215,7 +1185,6 @@ control ingress (inout headers hdr,
 
     @pragma stage 6
     action put_into_array_action() {
-    //    register_write(a_register, meta.tail, meta.value);
           a_register.write((bit<32>)meta.meta.tail, (bit<32>)meta.meta.value);
     }
     table put_into_array_table {
@@ -1229,11 +1198,8 @@ control ingress (inout headers hdr,
     action mark_to_resubmit_1_action() {
         hdr.pq_hdr.recirc_flag = 1;
         hdr.recirculate_hdr.setValid();
-        // ** hdr.recirculate_hdr.busy = 1;
         hdr.recirculate_hdr.busy = 1;
-        // ** hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
         hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
-        // ** hdr.recirculate_hdr.option_type = filter
         hdr.recirculate_hdr.option_type= FILTER_OPTION;
 
         hdr.recirculate_hdr.theta= meta.meta.theta;
@@ -1317,11 +1283,8 @@ control ingress (inout headers hdr,
     action mark_to_resubmit_2_action() {
         hdr.pq_hdr.recirc_flag = 2;
         hdr.recirculate_hdr.setValid();
-        // ** recirculate_hdr_t.busy = 1;
         hdr.recirculate_hdr.busy= 1;
-        // ** recirculate_hdr_t.array_to_operate = meta.meta.array_to_operate;
         hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
-        // ** recirculate_hdr_t.option_type = PRE_DELETE_OPTION
         hdr.recirculate_hdr.option_type = PRE_DELETE_OPTION;
 
         hdr.recirculate_hdr.theta = meta.meta.gamma;
@@ -1360,8 +1323,7 @@ control ingress (inout headers hdr,
 
     @pragma stage 7
     action mark_index_beta_action() {
-    //    register_write(index_beta_exg_register, 0, meta.delete_index);
-          index_beta_exg_register.write((bit<32>)32w0, (bit<32>)meta.meta.delete_index);
+          index_beta_exg_register.write(0, (bit<32>)meta.meta.delete_index);
           meta.meta.index_beta = meta.meta.delete_index;
     }
     table mark_index_beta_table {
@@ -1373,8 +1335,7 @@ control ingress (inout headers hdr,
 
     @pragma stage 7
     action get_index_gamma_action() {
-    //    register_read(meta.index_gamma, index_gamma_exg_register, 0);
-          index_gamma_exg_register.read(meta.meta.index_gamma, (bit<32>)32w0);
+          index_gamma_exg_register.read(meta.meta.index_gamma, 0);
     }
     table get_index_gamma_table {
         actions = {
@@ -1385,8 +1346,7 @@ control ingress (inout headers hdr,
 
     @pragma stage 7
     action get_index_beta_action() {
-    //    register_read(meta.index_beta, index_beta_exg_register, 0);
-          index_beta_exg_register.read(meta.meta.index_beta, (bit<32>)32w0);
+          index_beta_exg_register.read(meta.meta.index_beta, 0);
     }
 
     table get_index_beta_table {
@@ -1398,8 +1358,7 @@ control ingress (inout headers hdr,
 
     @pragma stage 7
     action mark_index_gamma_action() {
-    //    register_write(index_gamma_exg_register, 0, meta.delete_index);
-          index_gamma_exg_register.write((bit<32>)32w0, (bit<32>)meta.meta.delete_index);
+          index_gamma_exg_register.write(0, (bit<32>)meta.meta.delete_index);
           meta.meta.index_gamma = meta.meta.delete_index;
     }
     table mark_index_gamma_table {
@@ -1413,11 +1372,8 @@ control ingress (inout headers hdr,
     action mark_to_resubmit_3_action() {
         hdr.pq_hdr.recirc_flag = 3;
         hdr.recirculate_hdr.setValid();
-        // ** recirculate_hdr_t.busy = 1;
         hdr.recirculate_hdr.busy = 1;
-        // ** recirculate_hdr_t.array_to_operate = meta.meta.array_to_operate;
         hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
-        // ** recirculate_hdr_t.option_type = PRE_DELETE_OPTION
         hdr.recirculate_hdr.option_type = EXE_DELETE_OPTION;
 
         hdr.recirculate_hdr.theta = meta.meta.gamma;
@@ -1491,11 +1447,8 @@ control ingress (inout headers hdr,
     action mark_to_resubmit_6_action() {
         hdr.pq_hdr.recirc_flag = 6;
         hdr.recirculate_hdr.setValid();
-        // ** recirculate_hdr.busy = 1;
         hdr.recirculate_hdr.busy = 1;
-        // ** recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
         hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
-        // ** recirculate_hdr_t.option_type = PRE_DELETE_OPTION
         hdr.recirculate_hdr.option_type = FILTER_OPTION;
 
         hdr.recirculate_hdr.theta = meta.meta.gamma;
@@ -1520,11 +1473,8 @@ control ingress (inout headers hdr,
     action mark_to_resubmit_7_action() {
         hdr.pq_hdr.recirc_flag = 7;
         hdr.recirculate_hdr.setValid();
-        // ** recirculate_hdr.busy = 1;
         hdr.recirculate_hdr.busy = 0;
-        // ** recirculate_hdr_t.array_to_operate = meta.meta.array_to_operate;
         hdr.recirculate_hdr.array_to_operate = 0;
-        // ** recirculate_hdr_t.option_type = PRE_DELETE_OPTION
         hdr.recirculate_hdr.option_type = SAMPLE_OPTION;
 
         hdr.recirculate_hdr.theta = 0;
@@ -1570,11 +1520,8 @@ control ingress (inout headers hdr,
     action mark_to_resubmit_4_action() {
         hdr.pq_hdr.recirc_flag= 4;
         hdr.recirculate_hdr.setValid();
-        // ** recirculate_hdr.busy = 1;
         hdr.recirculate_hdr.busy= 1;
-        // ** recirculate_hdr_t.array_to_operate = meta.meta.array_to_operate;
         hdr.recirculate_hdr.array_to_operate= meta.meta.array_to_operate;
-        // ** recirculate_hdr_t.option_type = PRE_DELETE_OPTION
         hdr.recirculate_hdr.option_type = EXE_DELETE_OPTION;
 
         hdr.recirculate_hdr.theta= meta.meta.gamma;
@@ -1599,11 +1546,8 @@ control ingress (inout headers hdr,
     action mark_to_resubmit_5_action() {
         hdr.pq_hdr.recirc_flag = 5;
         hdr.recirculate_hdr.setValid();
-        // ** recirculate_hdr_t.busy = 1;
         hdr.recirculate_hdr.busy = 1;
-        // ** recirculate_hdr_t.array_to_operate = meta.meta.array_to_operate;
         hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
-        // ** recirculate_hdr_t.option_type = PRE_DELETE_OPTION
         hdr.recirculate_hdr.option_type = EXE_DELETE_OPTION;
 
         hdr.recirculate_hdr.theta = meta.meta.gamma;
@@ -1626,7 +1570,6 @@ control ingress (inout headers hdr,
 
     action resubmit_1_action() {
     //    recirculate(rec_fl);
-        // recirculate(68);
         meta.meta.recirced = 1;
     }
     table resubmit_1_table {
@@ -1758,7 +1701,6 @@ control ingress (inout headers hdr,
                         }
                         else {
                             // ** stage 5
-                            // inc_head_table.apply();
                             inc_head.apply(hdr, meta, standard_metadata);
 
                             // ** stage 6
@@ -1774,7 +1716,9 @@ control ingress (inout headers hdr,
                         }
                     }
                 }
-                resubmit_1_table.apply();
+                if (hdr.recirculate_hdr.isValid()) {
+                    resubmit_1_table.apply();
+                }
             }
             else if (hdr.pq_hdr.recirc_flag == 1) {
                 recirculation_1.apply(hdr, meta, standard_metadata);
@@ -1810,7 +1754,7 @@ control egress(inout headers hdr,
                inout standard_metadata_t standard_metadata) {
     apply {
       if (meta.meta.recirced == 1) {
-          recirculate_preserving_field_list(rec_fl);
+          recirculate_preserving_field_list(0);
       }
     }
 }

@@ -2,6 +2,7 @@
 
 import argparse
 import socket
+import random
 from time import sleep
 
 from scapy.all import IP, TCP, UDP, Ether, get_if_hwaddr, get_if_list, sendp, Packet, ByteField, IntField, ShortField
@@ -34,12 +35,12 @@ def main():
         addr = socket.gethostbyname(args.des)
         iface = get_if()
         if args.p == 'UDP':
-            pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234)/ PQ(op=0, priority=0, value=11, recirc_flag=0) / args.m
+            pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234)/ PQ(op=0, priority=0, value=random.randint(0,1000), recirc_flag=0) / args.m
             pkt.show()
             try:
                 for i in range(int(args.dur)):
                     sendp(pkt, iface=iface)
-                    sleep(1)
+                    sleep(1/500000)
             except KeyboardInterrupt:
                 raise
         elif args.p == 'TCP':

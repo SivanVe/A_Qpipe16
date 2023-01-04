@@ -2,7 +2,7 @@
 
 import sys
 
-from scapy.all import sniff, Packet, ByteField, IntField, ShortField
+from scapy.all import sniff, Packet, ByteField, IntField, ShortField, bind_layers, UDP
 
 class PQ(Packet):
     name = "PQ"
@@ -10,13 +10,14 @@ class PQ(Packet):
 
 def handle_pkt(pkt):
     print("got a packet")
-    pkt.show2()
+    pkt.show()
     sys.stdout.flush()
 
 
 def main():
     iface = 'eth0'
     print("sniffing on %s" % iface)
+    bind_layers(UDP, PQ, dport=8888)
     sys.stdout.flush()
     sniff(iface=iface, prn=lambda x: handle_pkt(x))
 

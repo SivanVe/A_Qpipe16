@@ -4,8 +4,11 @@ import argparse
 import socket
 from time import sleep
 
-from scapy.all import IP, TCP, UDP, Ether, get_if_hwaddr, get_if_list, sendp
+from scapy.all import IP, TCP, UDP, Ether, get_if_hwaddr, get_if_list, sendp, Packet, ByteField, IntField, ShortField
 
+class PQ(Packet):
+    name = "PQ"
+    field_desc = [ ByteField("op", 0), ByteField("priority", 0), IntField("value", 11), ShortField("recirc_flag", 0) ]
 
 def get_if():
     iface = None
@@ -31,7 +34,7 @@ def main():
         addr = socket.gethostbyname(args.des)
         iface = get_if()
         if args.p == 'UDP':
-            pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234) / args.m
+            pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234) / PQ() / args.m
             pkt.show2()
             try:
                 for i in range(int(args.dur)):

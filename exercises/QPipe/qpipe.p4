@@ -1809,6 +1809,9 @@ control egress(inout headers hdr,
                inout metadata meta,
                inout standard_metadata_t standard_metadata) {
     apply {
+      if (meta.meta.recirced == 1) {
+          recirculate_preserving_field_list(0);
+      }
     }
 }
 

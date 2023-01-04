@@ -11,7 +11,7 @@
 #define MINIMUM_VALUE   0
 #define MAXLEN          1000
 #define ARRAY_NUM       10
-#define ARRAY_LEN_INTOTAL   10000
+#define ARRAY_LEN_INTOTAL   10240
 #define SAMPLE_OPTION   0
 #define FILTER_OPTION   1
 #define PRE_DELETE_OPTION   2

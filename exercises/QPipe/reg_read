@@ -1,5 +1,6 @@
 register_read a_register
-register_read beta_exg_register
-register_read index_beta_exg_register
-register_read gamma_exg_register
-register_read index_gamma_exg_register
+register_read beta_exg_register 0
+register_read index_beta_exg_register 0
+register_read gamma_exg_register 0
+register_read index_gamma_exg_register 0
+register_read theta_register 0

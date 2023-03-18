@@ -27,8 +27,6 @@ register<bit<32>>(1) to_delete_num_register;
 register<bit<32>>(ARRAY_LEN_INTOTAL) a_register;
 register<bit<32>>(ARRAY_NUM) filter_index_register;
 register<bit<32>>(ARRAY_NUM) delete_index_register;
-register<bit<32>>(ARRAY_NUM) minimum_register; // UNUSED
-register<bit<32>>(ARRAY_NUM) second_minimum_register; // UNUSED
 register<bit<32>>(1) array_to_operate_register;
 register<bit<32>>(1) quantile_state_register;
 register<bit<32>>(1) option_type_register;
@@ -139,8 +137,8 @@ control recirculation_4 (inout headers hdr,
         to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
         meta.meta.value = hdr.recirculate_hdr.head_v;
         a_register.write((bit<32>)hdr.recirculate_hdr.index_beta_ing, (bit<32>)meta.meta.value);
-    //    beta_exg_register.read(meta.meta.beta, 0); // FIXME: new
-    //    a_register.write(meta.meta.head, (bit<32>)meta.meta.beta); // FIXME: new
+        beta_exg_register.read(meta.meta.beta, 0); // FIXME: new
+      //  a_register.write(meta.meta.head, (bit<32>)meta.meta.beta); // FIXME: new
     }
 }
 
@@ -152,7 +150,7 @@ control recirculation_5 (inout headers hdr,
         to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
         meta.meta.value = hdr.recirculate_hdr.head_v;
         a_register.write((bit<32>)hdr.recirculate_hdr.index_gamma_ing, (bit<32>)meta.meta.value);
-    //    gamma_exg_register.read(meta.meta.gamma, 0); // FIXME: new
+        gamma_exg_register.read(meta.meta.gamma, 0); // FIXME: new
     //    a_register.write(meta.meta.head, (bit<32>)meta.meta.gamma); // FIXME: new
     }
 }
@@ -225,7 +223,7 @@ control inc_filter_index (inout headers hdr,
 
     // inc_filter_index
     apply {
-    filter_index_register.read(meta.meta.filter_index, (bit<32>)meta.meta.array_to_operate);
+        filter_index_register.read(meta.meta.filter_index, (bit<32>)meta.meta.array_to_operate);
         if (meta.meta.filter_index == meta.meta.right_bound) {
             meta.meta.filter_index_n = meta.meta.left_bound;
         }
@@ -240,7 +238,7 @@ control fetch_item (inout headers hdr,
                     inout metadata meta,
                     inout standard_metadata_t standard_metadata) {
 
-    //fetch_item
+    // fetch_item
     apply {
      // a_register.read(meta.meta.a_value, (bit<32>)meta.meta.array_to_operate); // FIXME: original
         a_register.read(meta.meta.a_value, (bit<32>)meta.meta.filter_index); // FIXME: new
@@ -270,10 +268,17 @@ control filter_beta (inout headers hdr,
     apply {
         beta_exg_register.read(meta.meta.old_beta, 0);
         index_beta_exg_register.read(meta.meta.old_beta_index, 0); // FIXME: new
-        if ((meta.meta.old_beta > meta.meta.filter_item) && (meta.meta.filter_item != 0)) {
-            beta_exg_register.write(0, (bit<32>)meta.meta.filter_item);
-            index_beta_exg_register.write(0, (bit<32>)meta.meta.filter_index); // FIXME: new
+        if ((meta.meta.old_beta >= meta.meta.filter_item) && (meta.meta.filter_item != 0)) {
+          // FIXME: the equal part supposed to help the case where the 2 min values are the same
+            meta.meta.beta = meta.meta.filter_item; // FIXME: new
+            meta.meta.index_beta = meta.meta.filter_index; // FIXME: new
         }
+        else { // FIXME: new - instead of get_min_table
+            meta.meta.beta = meta.meta.old_beta;
+            meta.meta.index_beta = meta.meta.old_beta_index;
+        }
+        beta_exg_register.write(0, (bit<32>)meta.meta.beta);
+        index_beta_exg_register.write(0, (bit<32>)meta.meta.index_beta); // FIXME: new
     }
 }
 
@@ -283,11 +288,23 @@ control filter_gamma (inout headers hdr,
     // filter_gamma
     apply {
         gamma_exg_register.read(meta.meta.gamma, 0);
-         if ((meta.meta.gamma > meta.meta.max_v) && (meta.meta.filter_item != 0) && (meta.meta.index_gamma != meta.meta.old_beta_index)) { // FIXME: && (meta.meta.filter_index != meta.meta.index_beta_ing)
-            meta.meta.gamma = meta.meta.max_v;
-            index_gamma_exg_register.write(0, (bit<32>)meta.meta.index_gamma); // FIXME: new
+        index_gamma_exg_register.read(meta.meta.index_gamma, 0); // FIXME: new
+        if ((meta.meta.gamma > meta.meta.filter_item ) && (meta.meta.filter_item != 0) && (meta.meta.index_beta != meta.meta.filter_index)) { // FIXME: new
+            meta.meta.gamma = meta.meta.filter_item;
+            meta.meta.index_gamma = meta.meta.filter_index;
         }
+        if ((meta.meta.gamma > meta.meta.old_beta) && (meta.meta.index_beta != meta.meta.old_beta_index)
+            && (meta.meta.index_gamma != meta.meta.index_beta)) { // FIXME: new
+            meta.meta.gamma = meta.meta.old_beta;
+            meta.meta.index_gamma = meta.meta.old_beta_index;
+        }
+    /* FIXME: delete and delete max_v
+        if ((meta.meta.gamma > meta.meta.max_v) && (meta.meta.filter_item != 0) && (meta.meta.index_gamma != meta.meta.index_beta)) { // FIXME: && (meta.meta.filter_index != meta.meta.index_beta_ing)
+            meta.meta.gamma = meta.meta.max_v;
+        }
+    */
         gamma_exg_register.write(0, (bit<32>)meta.meta.gamma);
+        index_gamma_exg_register.write(0, (bit<32>)meta.meta.index_gamma); // FIXME: new
     }
 }
 
@@ -401,8 +418,6 @@ control ingress (inout headers hdr,
 
     @pragma stage 8
     action get_min_action() {
-        //max(meta.beta, meta.filter_item, meta.old_beta);
-      //  meta.meta.beta = ((bit<32>)meta.meta.filter_item >= (bit<32>)meta.meta.old_beta ? (bit<32>)meta.meta.filter_item : (bit<32>)meta.meta.old_beta); FIXME: original
         meta.meta.beta = ((bit<32>)meta.meta.filter_item <= (bit<32>)meta.meta.old_beta ? (bit<32>)meta.meta.filter_item : (bit<32>)meta.meta.old_beta);
     }
     table get_min_table {
@@ -528,7 +543,7 @@ control ingress (inout headers hdr,
         hdr.recirculate_hdr.option_type = SAMPLE_OPTION;
 
         hdr.recirculate_hdr.theta = 0;
-        hdr.recirculate_hdr.beta_ing = 4294967295; // FIMXE: 0;
+        hdr.recirculate_hdr.beta_ing = 4294967295; // FIMXE: was 0;
         hdr.recirculate_hdr.gamma_ing = 4294967295;
 
         hdr.recirculate_hdr.index_beta_ing = 0;
@@ -639,7 +654,6 @@ control ingress (inout headers hdr,
                         inc_tail.apply(hdr, meta, standard_metadata);
 
                         // ** stage 5
-                      //  inc_item_num_table.apply(); // FIXME: the table-action was empty
                         inc_item_num.apply(hdr, meta, standard_metadata);
 
                         // ** stage 6
@@ -666,8 +680,8 @@ control ingress (inout headers hdr,
 
                         if (meta.meta.filter_item != 0) {
                             // ** stage 8
-                            get_max_table.apply();
-                            get_min_table.apply();
+                        //    get_max_table.apply(); FIXME: added it to filter_gamma
+                            // get_min_table.apply(); FIXME: added it to filter_beta
                         }
                         // ** stage 9
                         filter_gamma.apply(hdr, meta, standard_metadata);
@@ -677,7 +691,7 @@ control ingress (inout headers hdr,
                             mark_to_resubmit_2_table.apply();
                         }
                     }
-                    else if (meta.meta.option_type == PRE_DELETE_OPTION) {
+            /*        else if (meta.meta.option_type == PRE_DELETE_OPTION) {
                         // ** stage 4
                         // ** find the item to delete
                         inc_delete_index.apply(hdr, meta, standard_metadata);
@@ -687,7 +701,7 @@ control ingress (inout headers hdr,
 
                         if (meta.meta.beta == meta.meta.filter_item) {
                             // ** stage 7
-                        //    mark_index_beta_table.apply(); // FIXME: originaly uncommented
+                            mark_index_beta_table.apply(); // FIXME: originaly uncommented
                             // ** stage 7
                             index_gamma_exg_register.read(meta.meta.index_gamma, 0); //  get_index_gamma_table;
                         }
@@ -696,7 +710,7 @@ control ingress (inout headers hdr,
                             index_beta_exg_register.read(meta.meta.index_beta, 0); // get_index_gamma_table;
                             // ** stage 7
                             if (meta.meta.gamma == meta.meta.filter_item) {
-                        //        mark_index_gamma_table.apply(); // FIXME: originaly uncommented
+                                mark_index_gamma_table.apply(); // FIXME: originaly uncommented
                             }
                             else {
                                 index_gamma_exg_register.read(meta.meta.index_gamma, 0); // get_index_gamma_table;
@@ -721,13 +735,12 @@ control ingress (inout headers hdr,
                                 meta.meta.picked_value = meta.meta.beta;
                             }
                             else {
-                              meta.meta.picked_value = meta.meta.gamma;
+                                meta.meta.picked_value = meta.meta.gamma;
                             }
                             inc_item_num_2.apply(hdr, meta, standard_metadata);
 
                             // ** stage 6
                             // ** push_value_table
-                            // a_register.write((bit<32>)meta.meta.tail, (bit<32>)meta.meta.value); // FIXME: original
                             a_register.write((bit<32>)meta.meta.tail, (bit<32>)meta.meta.picked_value); // FIXME: new
 
 
@@ -753,7 +766,7 @@ control ingress (inout headers hdr,
                                 mark_to_resubmit_5_table.apply();
                             }
                         }
-                    }
+                    }*/
                 }
                 if (hdr.recirculate_hdr.isValid()) {
                     resubmit_1_table.apply();

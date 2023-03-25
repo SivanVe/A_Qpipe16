@@ -12,3 +12,6 @@ register_write gamma_exg_register 0 4294967295
 register_write tail_register 0 0
 register_write tail_register 1 8
 register_write tail_register 2 12
+register_write head_register 0 0
+register_write head_register 1 8
+register_write head_register 2 12

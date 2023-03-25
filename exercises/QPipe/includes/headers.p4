@@ -31,6 +31,7 @@ struct meta_t {
     bit<32> delete_index_n;
     bit<32> filter_item_2;
     bit<32> old_beta;
+    bit<32> old_beta_index; // FIXME: new
     bit<32> max_v;
     bit<32> index_beta;
     bit<32> index_gamma;

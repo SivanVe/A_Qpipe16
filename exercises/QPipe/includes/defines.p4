@@ -16,3 +16,4 @@
 #define FILTER_OPTION   1
 #define PRE_DELETE_OPTION   2
 #define EXE_DELETE_OPTION   3
+#define MAX_INT   4294967295

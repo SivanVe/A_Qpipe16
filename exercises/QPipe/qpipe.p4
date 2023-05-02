@@ -14,7 +14,7 @@ register<bit<32>>(ARRAY_NUM) length_register;
 register<bit<32>>(ARRAY_NUM) head_register;
 register<bit<32>>(ARRAY_NUM) tail_register;
 register<bit<32>>(ARRAY_NUM) item_num_register;
-register<bit<32>>(ARRAY_NUM) theta_register;
+register<bit<32>>(1) theta_register;
 register<bit<32>>(1) beta_ing_register;
 register<bit<32>>(1) beta_exg_register;
 register<bit<32>>(1) gamma_ing_register;
@@ -25,7 +25,7 @@ register<bit<32>>(1) index_gamma_ing_register;
 register<bit<32>>(1) index_gamma_exg_register;
 register<bit<32>>(1) to_delete_num_register;
 register<bit<32>>(ARRAY_LEN_INTOTAL) a_register;
-register<bit<32>>(ARRAY_NUM) filter_index_register;
+register<bit<32>>(1) filter_index_register;
 register<bit<32>>(ARRAY_NUM) delete_index_register; // FIXME: probably unused
 register<bit<32>>(1) array_to_operate_register;
 register<bit<32>>(1) quantile_state_register;
@@ -72,10 +72,10 @@ control get_basic_info(inout headers hdr,
         to_delete_num_register.read(meta.meta.to_delete_num, 0); // FIXME: instead dec_to_delete_num
 
         // ** get beta
-        beta_ing_register.read(meta.meta.beta, 0);
+        beta_ing_register.read(meta.meta.beta, 0); // FIXME: was beta_ing_register
 
         // ** get gamma
-        gamma_ing_register.read(meta.meta.gamma, 0);
+        gamma_ing_register.read(meta.meta.gamma, 0); // FIXME: was gamma_ing_register
 
         // ** stage 2
         // TODO: if (meta.meta.sample != 1)
@@ -97,7 +97,7 @@ control get_basic_info(inout headers hdr,
         length_register.read(meta.meta.len, (bit<32>)meta.meta.array_to_operate);
 
         // ** get theta
-        theta_register.read(meta.meta.theta, (bit<32>)meta.meta.array_to_operate);
+        theta_register.read(meta.meta.theta, 0);
     }
 }
 
@@ -116,8 +116,8 @@ control recirculation_1 (inout headers hdr,
         to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
 
         // ** stage 1
-        beta_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.beta_ing);
-        gamma_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.gamma_ing);
+        beta_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.beta_ing); // FIXME: was beta_ing_register
+        gamma_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.gamma_ing); // FIXME: was gamma_ing_register
 
         // ** stage 2
         index_beta_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.index_beta_ing);
@@ -167,6 +167,35 @@ control inc_tail (inout headers hdr,
     }
 }
 
+control recirculation_6 (inout headers hdr,
+                         inout metadata meta,
+                         inout standard_metadata_t standard_metadata) {
+
+    apply {
+        // ** stage 0
+        option_type_register.write(0, (bit<32>)hdr.recirculate_hdr.option_type);
+        array_to_operate_register.write(0, (bit<32>)hdr.recirculate_hdr.array_to_operate);
+
+        quantile_state_register.write(0, (bit<32>)hdr.recirculate_hdr.busy);
+
+        // ** stage 1
+        to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
+
+        // ** stage 1
+        beta_exg_register.write(0, (bit<32>)hdr.recirculate_hdr.beta_ing); // FIXME: was beta_ing_register
+        gamma_exg_register.write(0, (bit<32>)hdr.recirculate_hdr.gamma_ing); // FIXME: was gamma_ing_register
+
+        // ** stage 2
+        index_beta_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.index_beta_ing);
+        index_gamma_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.index_gamma_ing);
+
+        // ** stage 3
+        theta_register.write(0, (bit<32>)hdr.recirculate_hdr.theta);
+
+        filter_index_register.write(0, (bit<32>)hdr.recirculate_hdr.head);
+
+    }
+}
 control inc_tail_2 (inout headers hdr,
                     inout metadata meta,
                     inout standard_metadata_t standard_metadata) {
@@ -218,14 +247,14 @@ control inc_filter_index (inout headers hdr,
 
     // inc_filter_index
     apply {
-        filter_index_register.read(meta.meta.filter_index, (bit<32>)meta.meta.array_to_operate);
+        filter_index_register.read(meta.meta.filter_index, 0); // FIXME: was (bit<32>)meta.meta.array_to_operate);
         if (meta.meta.filter_index == meta.meta.right_bound) {
-            meta.meta.filter_index_n = meta.meta.left_bound;
+            meta.meta.filter_index_n = meta.meta.head;
         }
         else {
             meta.meta.filter_index_n = meta.meta.filter_index + 1;
         }
-        filter_index_register.write((bit<32>)meta.meta.array_to_operate, (bit<32>)meta.meta.filter_index_n);
+        filter_index_register.write(0, (bit<32>)meta.meta.filter_index_n);
     }
 }
 
@@ -508,7 +537,7 @@ control ingress (inout headers hdr,
         hdr.pq_hdr.recirc_flag = 6;
         hdr.recirculate_hdr.setValid();
         hdr.recirculate_hdr.busy = 1;
-        hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate;
+        hdr.recirculate_hdr.array_to_operate = meta.meta.array_to_operate - 1;
         hdr.recirculate_hdr.option_type = FILTER_OPTION;
 
         hdr.recirculate_hdr.theta = meta.meta.gamma;
@@ -520,6 +549,7 @@ control ingress (inout headers hdr,
 
         hdr.recirculate_hdr.to_delete_num = 0;
 
+        hdr.recirculate_hdr.head = meta.meta.head;
         hdr.recirculate_hdr.head_v = meta.meta.head_v;
     }
     table mark_to_resubmit_6_table {
@@ -700,7 +730,7 @@ control ingress (inout headers hdr,
                             }
                         }
                         else { // meta.meta.to_delete_num == 0
-                               // ** pushing the value and move to FILTER_OPTION
+                            // ** pushing the value and move to FILTER_OPTION
                             // ** stage 4
                             inc_tail_2.apply(hdr, meta, standard_metadata);
 
@@ -719,67 +749,16 @@ control ingress (inout headers hdr,
 
                             if (meta.meta.item_num < meta.meta.len) { // FIXME: was ==
                                 // ** go to filter option
+                                head_register.read(meta.meta.head, (bit<32>)meta.meta.array_to_operate - 1); // FIXME: new
                                 mark_to_resubmit_6_table.apply();
                             }
-                            else {
+                            else { // FIXME: need to campact the next level
+                                // ** finished the entire ARRAY_LEN_INTOTAL
                                 // ** go to sample option
                                 mark_to_resubmit_7_table.apply();
                             }
                         }
                     }
-              /*
-              ##########################################################################################
-              ##########################################################################################
-                    else if (meta.meta.option_type == EXE_DELETE_OPTION) {
-
-                        if (meta.meta.to_delete_num == 0) {
-                          //  inc_array_to_operate_table.apply(); // FIXME: was in a comment
-
-                            // ** stage 4
-                            inc_tail_2.apply(hdr, meta, standard_metadata);
-
-                            // ** stage 5
-                            if (meta.meta.sample_01 == 0) {
-                                meta.meta.picked_value = meta.meta.beta;
-                            }
-                            else {
-                                meta.meta.picked_value = meta.meta.gamma;
-                            }
-                            inc_item_num_2.apply(hdr, meta, standard_metadata);
-
-                            // ** stage 6
-                            // ** push_value_table
-                            a_register.write((bit<32>)meta.meta.tail, (bit<32>)meta.meta.picked_value); // FIXME: new
-
-
-                            if (meta.meta.item_num == meta.meta.len) {
-                                // ** go to filter option
-                                mark_to_resubmit_6_table.apply();
-                            }
-                            else {
-                                // ** go to sample option
-                                mark_to_resubmit_7_table.apply();
-                            }
-                        }
-                        else {
-                            // ** stage 5
-                            inc_head.apply(hdr, meta, standard_metadata);
-
-                            // ** stage 6
-                            a_register.read(meta.meta.head_v, (bit<32>)meta.meta.head); // get_head_value_table
-                            if (meta.meta.to_delete_num == 2) {
-                                // ** stage 10
-                                mark_to_resubmit_4_table.apply();
-                            }
-                            else if (meta.meta.to_delete_num == 1) {
-                                // ** stage 10
-                                mark_to_resubmit_5_table.apply();
-                            }
-                        }
-                    }
-                    ##########################################################################################
-                    ##########################################################################################
-              */
                 }
                 if (hdr.recirculate_hdr.isValid()) {
                     resubmit_1_table.apply();
@@ -801,7 +780,7 @@ control ingress (inout headers hdr,
                 recirculation_5.apply(hdr, meta, standard_metadata);
             }
             else if (hdr.pq_hdr.recirc_flag == 6) {
-                recirculation_1.apply(hdr, meta, standard_metadata);
+                recirculation_6.apply(hdr, meta, standard_metadata); // FIXME: was recirculation_1
             }
             else if (hdr.pq_hdr.recirc_flag == 7) {
                 recirculation_1.apply(hdr, meta, standard_metadata);

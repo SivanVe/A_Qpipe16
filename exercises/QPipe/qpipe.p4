@@ -68,7 +68,7 @@ control get_basic_info(inout headers hdr,
         quantile_state_register.read(meta.meta.busy, 0);
 
         // ** stage 1
-      //  dec_to_delete_num.apply(hdr, meta, standard_metadata);
+      //  dec_to_delete_num.apply(hdr, meta, standard_metadata); // FIXME: delete
         to_delete_num_register.read(meta.meta.to_delete_num, 0); // FIXME: instead dec_to_delete_num
 
         // ** get beta
@@ -698,11 +698,38 @@ control ingress (inout headers hdr,
                                 mark_to_resubmit_5_table.apply();
                             }
                         }
-                        else {
-                            // FIXME: need to put value
+                        else { // meta.meta.to_delete_num == 0
+                               // pushing the value and move to FILTER_OPTION
+                            // ** stage 4
+                            inc_tail_2.apply(hdr, meta, standard_metadata);
+
+                            // ** stage 5
+                            if (meta.meta.sample_01 == 0) {
+                                meta.meta.picked_value = meta.meta.beta;
+                            }
+                            else {
+                                meta.meta.picked_value = meta.meta.gamma;
+                            }
+                            inc_item_num_2.apply(hdr, meta, standard_metadata);
+
+                            // ** stage 6
+                            // ** push_value_table
+                            a_register.write((bit<32>)meta.meta.tail, (bit<32>)meta.meta.picked_value); // FIXME: new
+
+                            if (meta.meta.item_num < meta.meta.len) { // FIXME: was ==
+                                // ** go to filter option
+                                mark_to_resubmit_6_table.apply();
+                            }
+                            else {
+                                // ** go to sample option
+                                mark_to_resubmit_7_table.apply();
+                            }
                         }
                     }
-              /*      else if (meta.meta.option_type == EXE_DELETE_OPTION) {
+              /*
+              ##########################################################################################
+              ##########################################################################################
+                    else if (meta.meta.option_type == EXE_DELETE_OPTION) {
 
                         if (meta.meta.to_delete_num == 0) {
                           //  inc_array_to_operate_table.apply(); // FIXME: was in a comment
@@ -724,7 +751,7 @@ control ingress (inout headers hdr,
                             a_register.write((bit<32>)meta.meta.tail, (bit<32>)meta.meta.picked_value); // FIXME: new
 
 
-                            if (meta.meta.item_num < meta.meta.len) { // FIXME: was ==
+                            if (meta.meta.item_num == meta.meta.len) {
                                 // ** go to filter option
                                 mark_to_resubmit_6_table.apply();
                             }
@@ -749,6 +776,8 @@ control ingress (inout headers hdr,
                             }
                         }
                     }
+                    ##########################################################################################
+                    ##########################################################################################
               */
                 }
                 if (hdr.recirculate_hdr.isValid()) {

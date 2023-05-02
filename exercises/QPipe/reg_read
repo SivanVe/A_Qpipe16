@@ -10,3 +10,4 @@ register_read array_to_operate_register 0
 register_read quantile_state_register 0
 register_read option_type_register 0
 register_read to_delete_num_register 0
+register_read item_num_register

@@ -39,8 +39,8 @@ parser ParserImpl(packet_in packet,
     state parse_pq_hdr {
         packet.extract(hdr.pq_hdr);
         transition select(hdr.pq_hdr.recirc_flag) {
-            RECIRCULATED: parse_recirculate_hdr;
-            default: accept;
+            NOT_RECIRC: accept;
+            default: parse_recirculate_hdr;
         }
     }
     state parse_recirculate_hdr {

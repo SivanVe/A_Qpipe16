@@ -5,7 +5,7 @@
 #define QUEUE_LEN       1111
 #define LEFT_BOUND      1
 #define RIGHT_BOUND     1000
-#define RECIRCULATED    1
+#define NOT_RECIRC      0
 #define LOWER_BOUND     0
 #define UPPER_BOUND     255
 #define MINIMUM_VALUE   0

@@ -103,6 +103,7 @@ header recirculate_hdr_t {
     bit<32> index_beta_ing;
     bit<32> index_gamma_ing;
     bit<32> to_delete_num;
+    bit<32> head; // FIXME: new
     bit<32> head_v;
 }
 

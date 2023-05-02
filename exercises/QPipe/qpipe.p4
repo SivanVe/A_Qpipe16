@@ -682,6 +682,7 @@ control ingress (inout headers hdr,
                         }
                     }
                     else if (meta.meta.option_type == EXE_DELETE_OPTION) {
+                        // ** swap between beta, gamma and head
                         if (meta.meta.to_delete_num != 0) {
                             // ** stage 5
                             inc_head.apply(hdr, meta, standard_metadata);
@@ -699,7 +700,7 @@ control ingress (inout headers hdr,
                             }
                         }
                         else { // meta.meta.to_delete_num == 0
-                               // pushing the value and move to FILTER_OPTION
+                               // ** pushing the value and move to FILTER_OPTION
                             // ** stage 4
                             inc_tail_2.apply(hdr, meta, standard_metadata);
 

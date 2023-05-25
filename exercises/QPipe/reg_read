@@ -8,7 +8,7 @@ register_read index_gamma_exg_register 0
 register_read theta_register 0
 register_read tail_register
 register_read head_register
-register_read filter_index_register 0
+register_read filter_index_register
 register_read array_to_operate_register 0
 register_read quantile_state_register 0
 register_read option_type_register 0

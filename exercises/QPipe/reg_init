@@ -15,3 +15,6 @@ register_write tail_register 2 12
 register_write head_register 0 0
 register_write head_register 1 8
 register_write head_register 2 12
+register_write filter_index_register 0 0
+register_write filter_index_register 1 8
+register_write filter_index_register 2 12

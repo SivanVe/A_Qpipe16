@@ -6,8 +6,8 @@
 #define LEFT_BOUND      1
 #define RIGHT_BOUND     1000
 #define NOT_RECIRC      0
-#define LOWER_BOUND     0
-#define UPPER_BOUND     255
+#define LOWER_BOUND     1
+#define UPPER_BOUND     4 // FIXME: was 255
 #define MINIMUM_VALUE   0
 #define MAXLEN          8
 #define ARRAY_NUM       3

@@ -11,7 +11,7 @@
 #define MINIMUM_VALUE   0
 #define MAXLEN          8
 #define ARRAY_NUM       3
-#define ARRAY_LEN_INTOTAL   14
+#define ARRAY_LEN_INTOTAL   56 // FIXME: was 14
 #define SAMPLE_OPTION   0
 #define FILTER_OPTION   1
 #define PRE_DELETE_OPTION   2

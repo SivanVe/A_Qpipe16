@@ -39,7 +39,7 @@ def main():
         #    pkt.show()
             try:
                 for i in range(int(args.dur)):
-                    pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234)/ PQ(op=0, priority=0, value=random.randint(0,1000), recirc_flag=0) / args.m
+                    pkt = Ether(src=get_if_hwaddr(iface), dst="ff:ff:ff:ff:ff:ff") / IP(dst=addr, tos=1) / UDP(dport=8888, sport=1234)/ PQ(op=0, priority=0, value=random.randint(300,700), recirc_flag=0) / args.m
                     sendp(pkt, iface=iface)
                     sleep(1/500000)
             except KeyboardInterrupt:

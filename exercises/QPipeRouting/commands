@@ -1,0 +1,12 @@
+terminal 1:
+make
+make clean
+mininet:
+xterm h1 h2
+exit
+terminal 2:
+python3 tools/runtime_CLI.py --thrift-port 9090 <  reg_init
+python3 tools/runtime_CLI.py --thrift-port 9090 <  reg_read
+nodes:
+python3 ./receive.py
+python3 ./send.py --p=UDP --des=10.0.2.2 --m="We made it" --dur=50

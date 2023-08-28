@@ -1,0 +1,76 @@
+{
+  "target": "bmv2",
+  "p4info": "build/qpipeRouting.p4.p4info.txt",
+  "bmv2_json": "build/qpipeRouting.json",
+  "table_entries": [
+    {
+      "table": "ingress.ipv4_route",
+      "default_action": true,
+      "action_name": "ingress.drop",
+      "action_params": { }
+    },
+    {
+      "table": "ingress.select_route",
+      "match": {
+        "hdr.ipv4.dstAddr": ["10.0.1.1", 32]
+      },
+      "action_name": "ingress.set_select",
+      "action_params": {
+        "direction": 0
+      }
+    },
+    {
+      "table": "ingress.select_route",
+      "match": {
+        "hdr.ipv4.dstAddr": ["10.0.2.2", 32]
+      },
+      "action_name": "ingress.set_select",
+      "action_params": {
+        "direction": 1
+      }
+    },
+    {
+      "table": "ingress.select_route",
+      "match": {
+        "hdr.ipv4.dstAddr": ["10.0.3.3", 32]
+      },
+      "action_name": "ingress.set_select",
+      "action_params": {
+        "direction": 1
+      }
+    },
+    {
+      "table": "ingress.ipv4_route",
+      "match": {
+        "meta.meta.selected": 0
+      },
+      "action_name": "ingress.set_egress",
+      "action_params": {
+        "egress_spec": 1,
+        "dmac": "08:00:00:00:01:11"
+      }
+    },
+    {
+      "table": "ingress.ipv4_route",
+      "match": {
+        "meta.meta.selected": 1
+      },
+      "action_name": "ingress.set_egress",
+      "action_params": {
+        "egress_spec": 2,
+        "dmac": "08:00:00:00:02:22"
+      }
+    },
+    {
+      "table": "ingress.ipv4_route",
+      "match": {
+        "meta.meta.selected": 2
+      },
+      "action_name": "ingress.set_egress",
+      "action_params": {
+        "egress_spec": 3,
+        "dmac": "08:00:00:00:03:33"
+      }
+    }
+  ]
+}

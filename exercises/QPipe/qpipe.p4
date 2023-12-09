@@ -50,7 +50,7 @@ control get_basic_info(inout headers hdr,
         quantile_state_register.read(meta.meta.busy, 0);
 
         // ** stage 1
-        to_delete_num_register.read(meta.meta.to_delete_num, 0); // FIXME: instead dec_to_delete_num control
+        to_delete_num_register.read(meta.meta.to_delete_num, 0);
 
         // ** get beta
         beta_ing_register.read(meta.meta.beta, 0);
@@ -124,7 +124,7 @@ control recirculation_5 (inout headers hdr,
                          inout standard_metadata_t standard_metadata) {
     // ** swap - write head value to gamma index
     apply {
-        to_delete_num_register.write(0, 0); // FIXME: (bit<32>)hdr.recirculate_hdr.to_delete_num);
+        to_delete_num_register.write(0, 0);
         meta.meta.value = hdr.recirculate_hdr.head_v;
         a_register.write((bit<32>)hdr.recirculate_hdr.index_gamma_ing, (bit<32>)meta.meta.value);
     }
@@ -162,8 +162,8 @@ control recirculation_6 (inout headers hdr,
         to_delete_num_register.write(0, (bit<32>)hdr.recirculate_hdr.to_delete_num);
 
         // ** stage 1
-        beta_exg_register.write(0, (bit<32>)hdr.recirculate_hdr.beta_ing); // FIXME: was beta_ing_register
-        gamma_exg_register.write(0, (bit<32>)hdr.recirculate_hdr.gamma_ing); // FIXME: was gamma_ing_register
+        beta_exg_register.write(0, (bit<32>)hdr.recirculate_hdr.beta_ing);
+        gamma_exg_register.write(0, (bit<32>)hdr.recirculate_hdr.gamma_ing);
 
         // ** stage 2
         index_beta_ing_register.write(0, (bit<32>)hdr.recirculate_hdr.index_beta_ing);
@@ -245,7 +245,7 @@ control fetch_item (inout headers hdr,
     // fetch_item
     apply {
         a_register.read(meta.meta.a_value, (bit<32>)meta.meta.filter_index);
-        if (meta.meta.a_value > meta.meta.theta) {
+        if (meta.meta.a_value >= meta.meta.theta) {
             meta.meta.filter_item = meta.meta.a_value;
         }
     }
@@ -260,11 +260,11 @@ control filter_beta (inout headers hdr,
         beta_exg_register.read(meta.meta.old_beta, 0);
         index_beta_exg_register.read(meta.meta.old_beta_index, 0);
         if ((meta.meta.old_beta >= meta.meta.filter_item) && (meta.meta.filter_item != 0)) {
-          // FIXME: the equal part supposed to help the case where the 2 min values are the same
+          // the equal part supposed to help the case where the 2 min values are the same
             meta.meta.beta = meta.meta.filter_item;
             meta.meta.index_beta = meta.meta.filter_index;
         }
-        else { // FIXME: new - instead of get_min_table
+        else {
             meta.meta.beta = meta.meta.old_beta;
             meta.meta.index_beta = meta.meta.old_beta_index;
         }
@@ -321,9 +321,9 @@ control ingress (inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
 
-    action set_egress(bit<9> egress_spec, bit<48> smac, bit<48> dmac) {
+    action set_egress(bit<9> egress_spec, bit<48> dmac) {
         standard_metadata.egress_spec = egress_spec;
-        hdr.ethernet.srcAddr = smac; // FIXME: change smac to hdr.ethernet.dstAddr and delete in json file
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dmac;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
@@ -401,11 +401,11 @@ control ingress (inout headers hdr,
         hdr.recirculate_hdr.option_type = FILTER_OPTION;
 
         hdr.recirculate_hdr.theta = meta.meta.gamma;
-        hdr.recirculate_hdr.beta_ing = MAX_INT; // FIXME: was meta.meta.beta;
-        hdr.recirculate_hdr.gamma_ing = MAX_INT; // FIXME: was meta.meta.gamma;
+        hdr.recirculate_hdr.beta_ing = MAX_INT;
+        hdr.recirculate_hdr.gamma_ing = MAX_INT;
 
-        hdr.recirculate_hdr.index_beta_ing = 0; // FIXME: was meta.meta.index_beta;
-        hdr.recirculate_hdr.index_gamma_ing = 0; // FIXME: was meta.meta.index_gamma;
+        hdr.recirculate_hdr.index_beta_ing = 0;
+        hdr.recirculate_hdr.index_gamma_ing = 0;
 
         hdr.recirculate_hdr.to_delete_num = 0;
 
@@ -455,7 +455,7 @@ control ingress (inout headers hdr,
         hdr.recirculate_hdr.option_type = SAMPLE_OPTION;
 
         hdr.recirculate_hdr.theta = 0;
-        hdr.recirculate_hdr.beta_ing = MAX_INT; // FIXME: was 0;
+        hdr.recirculate_hdr.beta_ing = MAX_INT;
         hdr.recirculate_hdr.gamma_ing = MAX_INT;
 
         hdr.recirculate_hdr.index_beta_ing = 0;
@@ -581,9 +581,9 @@ control ingress (inout headers hdr,
                         // ** stage 9
                         filter_gamma.apply(hdr, meta, standard_metadata);
 
-                        if (meta.meta.filter_index == meta.meta.right_bound) { // FIXME: was meta.meta.tail
+                        if (meta.meta.filter_index == meta.meta.right_bound) {
                             // ** stage 10
-                            mark_to_resubmit_3_table.apply(); // FIXME: new - skip the PRE_DELETE_OPTION
+                            mark_to_resubmit_3_table.apply();
                         }
                     }
                     else if (meta.meta.option_type == EXE_DELETE_OPTION) {
@@ -626,7 +626,7 @@ control ingress (inout headers hdr,
                             // ** push_value_table
                             a_register.write((bit<32>)meta.meta.tail, (bit<32>)meta.meta.picked_value);
 
-                            if (meta.meta.item_num < meta.meta.len) { // FIXME: was ==
+                            if (meta.meta.item_num < meta.meta.len) {
                                 // ** go to filter option
                                 head_register.read(meta.meta.head, (bit<32>)meta.meta.array_to_operate - 1);
                                 mark_to_resubmit_6_table.apply();
@@ -712,7 +712,7 @@ control verifyChecksum(inout headers hdr, inout metadata meta) {
 control computeChecksum(inout headers hdr, inout metadata meta) {
     apply {
         update_checksum(
-            true, //FIXME: maybe hdr.ipv4.isValid() like in the tutorials
+            true,
             { hdr.ipv4.version,
               hdr.ipv4.ihl,
               hdr.ipv4.diffserv,
